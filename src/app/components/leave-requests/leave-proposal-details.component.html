@@ -1,0 +1,357 @@
+<div class="proposal-details">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-info">
+      <button class="btn-back" (click)="goBack()">
+        ← Powrót
+      </button>
+      <h1>
+        <span class="icon">📋</span>
+        Szczegóły wniosku urlopowego #{{ proposalId }}
+      </h1>
+    </div>
+    <div class="header-actions">
+      <!-- Admin/HR/Manager actions -->
+      <div *ngIf="canApprove" class="approval-actions">
+        <button
+          class="btn btn-success"
+          (click)="showApprovalForm = true"
+          [disabled]="proposal?.status !== 'SUBMITTED'"
+        >
+          ✅ Zatwierdź
+        </button>
+        <button
+          class="btn btn-danger"
+          (click)="showRejectionForm = true"
+          [disabled]="proposal?.status !== 'SUBMITTED'"
+        >
+          ❌ Odrzuć
+        </button>
+      </div>
+
+      <!-- User actions for own proposals -->
+      <div *ngIf="canEditOwnProposal()" class="user-actions">
+        <button
+          class="btn btn-primary"
+          (click)="editProposal()"
+          [disabled]="proposal?.status !== 'SUBMITTED'"
+        >
+          ✏️ Edytuj wniosek
+        </button>
+        <button
+          class="btn btn-secondary"
+          (click)="withdrawProposal()"
+          [disabled]="proposal?.status !== 'SUBMITTED'"
+          title="Wycofaj wniosek"
+        >
+          ↩️ Wycofaj
+        </button>
+      </div>
+
+      <!-- Debug info -->
+      <div *ngIf="showDebugInfo" class="debug-info">
+        <small>Debug: canApprove={{ canApprove }}, canEdit={{ canEditOwnProposal() }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Ładowanie szczegółów wniosku...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-error">
+    <strong>❌ Błąd:</strong><br>
+    {{ error }}
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!loading && !error && proposal" class="main-content">
+    <!-- Left Panel - Proposal Details -->
+    <div class="left-panel">
+      <!-- Proposal Info Card -->
+      <div class="card proposal-info">
+        <div class="card-header">
+          <h2>📄 Informacje o wniosku</h2>
+          <span class="status-badge" [class]="getStatusClass(proposal.status)">
+                {{ getStatusIcon(proposal.status) }} {{ getStatusLabel(proposal.status) }}
+              </span>
+        </div>
+        <div class="card-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Pracownik:</span>
+              <span class="value">{{ proposal.userFirstName }} {{ proposal.userLastName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Typ urlopu:</span>
+              <span class="value leave-type" [style.color]="getLeaveTypeColor(proposal.leaveType)">
+                    {{ getLeaveTypeIcon(proposal.leaveType) }} {{ getLeaveTypeLabel(proposal.leaveType) }}
+                  </span>
+            </div>
+            <div class="info-item">
+              <span class="label">Okres:</span>
+              <span class="value">
+                    {{ formatDate(proposal.startDate) }} - {{ formatDate(proposal.endDate) }}
+                  </span>
+            </div>
+            <div class="info-item">
+              <span class="label">Liczba dni:</span>
+              <span class="value days-count">{{ proposal.requestedDays }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Złożono:</span>
+              <span class="value">{{ formatDateTime(proposal.submittedAt) }}</span>
+            </div>
+            <div class="info-item" *ngIf="proposal.processedAt">
+              <span class="label">Rozpatrzono:</span>
+              <span class="value">{{ formatDateTime(proposal.processedAt) }}</span>
+            </div>
+            <div class="info-item" *ngIf="proposal.processedByUserName">
+              <span class="label">Rozpatrzył:</span>
+              <span class="value">{{ proposal.processedByUserName }}</span>
+            </div>
+          </div>
+          <div class="description" *ngIf="proposal.description">
+            <h3>📝 Opis wniosku</h3>
+            <p>{{ proposal.description }}</p>
+          </div>
+          <div class="handover-notes" *ngIf="proposal.handoverNotes">
+            <h3>📋 Uwagi do przekazania</h3>
+            <p>{{ proposal.handoverNotes }}</p>
+          </div>
+          <div class="substitute" *ngIf="proposal.substituteUserName">
+            <h3>👤 Zastępstwo</h3>
+            <p>{{ proposal.substituteUserName }}</p>
+          </div>
+          <div class="rejection-reason" *ngIf="proposal.rejectionReason">
+            <h3>❌ Powód odrzucenia</h3>
+            <p>{{ proposal.rejectionReason }}</p>
+          </div>
+          <div class="approver-comments" *ngIf="proposal.approverComments">
+            <h3>💬 Komentarz przełożonego</h3>
+            <p>{{ proposal.approverComments }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Leave Statistics -->
+      <div class="card stats-card" *ngIf="leaveStats">
+        <div class="card-header">
+          <h2>📊 Statystyki urlopowe</h2>
+        </div>
+        <div class="card-content">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-value">{{ leaveStats.totalEmployees }}</span>
+              <span class="stat-label">Wszyscy pracownicy</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ leaveStats.employeesOnLeave }}</span>
+              <span class="stat-label">Na urlopie w tym okresie</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ getOverlapDaysCount() }}</span>
+              <span class="stat-label">Dni z nakładaniem</span>
+            </div>
+          </div>
+          <div class="overlapping-details">
+            <h4>⚠️ Pracownicy na urlopie w tym samym czasie</h4>
+            <div *ngIf="(leaveStats?.overlappingRequests && leaveStats.overlappingRequests.length > 0); else noOverlap">
+              <div class="overlap-list">
+                <div class="overlap-item" *ngFor="let overlap of leaveStats.overlappingRequests">
+                  <span class="overlap-date">{{ formatDate(overlap.date) }}</span>
+                  <div class="overlap-employees">
+                        <span class="employee-chip" *ngFor="let emp of overlap.employees">
+                          {{ emp.userFirstName }} {{ emp.userLastName }} ({{ getLeaveTypeLabel(emp.leaveType) }})
+                        </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noOverlap>
+              <p>Brak</p>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+      <!-- History -->
+      <div class="card history-card">
+        <div class="card-header">
+          <h2>📈 Historia zmian</h2>
+        </div>
+        <div class="card-content">
+          <div class="history-loading" *ngIf="historyLoading">
+            <div class="spinner-small"></div>
+            <span>Ładowanie historii...</span>
+          </div>
+          <div class="history-list" *ngIf="!historyLoading">
+            <div class="history-item" *ngFor="let item of proposalHistory">
+              <div class="history-icon">
+                {{ getChangeTypeIcon(item.changeType) }}
+              </div>
+              <div class="history-content">
+                <div class="history-header">
+                  <span class="change-type">{{ getChangeTypeLabel(item.changeType) }}</span>
+                  <span class="change-date">{{ formatDateTime(item.changedAt) }}</span>
+                </div>
+                <div class="history-details">
+                  <span class="changed-by">{{ item.changedBy }}</span>
+                  <span class="change-description" *ngIf="item.changeDescription">
+                        {{ item.changeDescription }}
+                      </span>
+                </div>
+              </div>
+            </div>
+            <div class="no-history" *ngIf="proposalHistory.length === 0">
+              <p>Brak historii zmian</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Calendar -->
+    <div class="right-panel">
+      <div class="card calendar-card">
+        <div class="card-header">
+          <h2>📅 Kalendarz urlopowy</h2>
+          <div class="calendar-nav">
+            <button class="btn-nav" (click)="previousMonth()">‹</button>
+            <span class="month-year">{{ getMonthYearDisplay() }}</span>
+            <button class="btn-nav" (click)="nextMonth()">›</button>
+          </div>
+        </div>
+
+        <div class="calendar-container">
+          <div class="calendar-weekdays">
+            <div class="weekday" *ngFor="let day of weekdays">{{ day }}</div>
+          </div>
+
+          <div class="calendar-days">
+            <div
+              class="calendar-day"
+              *ngFor="let day of calendarDays"
+              [class.other-month]="!day.isCurrentMonth"
+              [class.today]="day.isToday"
+              [class.in-range]="day.isInRange"
+              [class.start-date]="day.isStartDate"
+              [class.end-date]="day.isEndDate"
+              [class.has-leaves]="day.hasLeaves"
+            >
+              <span class="day-number">{{ day.day }}</span>
+
+              <div class="day-employees" *ngIf="day.employeesOnLeave.length > 0">
+                <div class="employee-tooltip">
+                  <span class="employee-count">{{ day.employeesOnLeave.length }}</span>
+                  <div class="tooltip-content">
+                    <div class="tooltip-employee" *ngFor="let emp of day.employeesOnLeave">
+                      <strong>{{ emp.userFirstName }} {{ emp.userLastName }}</strong>
+                      <span class="emp-leave-type">{{ getLeaveTypeLabel(emp.leaveType) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-legend">
+          <div class="legend-item">
+            <div class="legend-color current-proposal"></div>
+            <span>Obecny wniosek</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color has-leaves"></div>
+            <span>Inne urlopy</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval Form Modal -->
+  <div class="modal" *ngIf="showApprovalForm" (click)="closeApprovalForm($event)">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>✅ Zatwierdź wniosek urlopowy</h3>
+        <button class="btn-close" (click)="closeApprovalForm()">&times;</button>
+      </div>
+
+      <form [formGroup]="approvalForm" (ngSubmit)="approveProposal()" class="modal-body">
+        <div class="form-group">
+          <label for="approverComments">💬 Komentarz (opcjonalnie):</label>
+          <textarea
+            id="approverComments"
+            formControlName="approverComments"
+            rows="4"
+            placeholder="Dodaj komentarz do zatwierdzenia..."
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeApprovalForm()">
+            Anuluj
+          </button>
+          <button type="submit" class="btn btn-success" [disabled]="approvingProposal">
+            <span *ngIf="approvingProposal" class="spinner-small"></span>
+            ✅ Zatwierdź wniosek
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Rejection Form Modal -->
+  <div class="modal" *ngIf="showRejectionForm" (click)="closeRejectionForm($event)">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>❌ Odrzuć wniosek urlopowy</h3>
+        <button class="btn-close" (click)="closeRejectionForm()">&times;</button>
+      </div>
+
+      <form [formGroup]="rejectionForm" (ngSubmit)="rejectProposal()" class="modal-body">
+        <div class="form-group">
+          <label for="rejectionReason">❌ Powód odrzucenia *:</label>
+          <textarea
+            id="rejectionReason"
+            formControlName="rejectionReason"
+            rows="4"
+            placeholder="Wyjaśnij powód odrzucenia wniosku..."
+            required
+          ></textarea>
+          <div class="form-error" *ngIf="rejectionForm.get('rejectionReason')?.invalid && rejectionForm.get('rejectionReason')?.touched">
+            Powód odrzucenia jest wymagany
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="rejectionComments">💬 Dodatkowy komentarz (opcjonalnie):</label>
+          <textarea
+            id="rejectionComments"
+            formControlName="approverComments"
+            rows="3"
+            placeholder="Dodatkowe uwagi lub sugestie..."
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeRejectionForm()">
+            Anuluj
+          </button>
+          <button type="submit" class="btn btn-danger" [disabled]="rejectingProposal || rejectionForm.invalid">
+            <span *ngIf="rejectingProposal" class="spinner-small"></span>
+            ❌ Odrzuć wniosek
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <strong>✅ Sukces:</strong><br>
+    {{ successMessage }}
+  </div>
+</div>
