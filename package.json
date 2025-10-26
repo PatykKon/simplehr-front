@@ -9,6 +9,18 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
+  "budgets": [
+    {
+      "type": "initial",
+      "maximumWarning": "1mb",
+      "maximumError": "2mb"
+    },
+    {
+      "type": "anyComponentStyle",
+      "maximumWarning": "50kb",
+      "maximumError": "100kb"
+    }
+  ],
   "assets": [
     "src/favicon.ico",
     "src/assets",
