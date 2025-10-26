@@ -1,0 +1,194 @@
+<div class="leave-request-create">
+  <div class="container">
+    <div class="header">
+      <h2>Nowy wniosek urlopowy</h2>
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        ← Powrót
+      </button>
+    </div>
+
+    <div class="content-wrapper">
+      <!-- Kalendarz po lewej stronie -->
+      <div class="calendar-section">
+        <div class="calendar-header">
+          <button type="button" class="calendar-nav-btn" (click)="previousMonth()">‹</button>
+          <h3>{{ getMonthYearDisplay() }}</h3>
+          <button type="button" class="calendar-nav-btn" (click)="nextMonth()">›</button>
+        </div>
+        
+        <div class="calendar-instructions">
+          <p>Kliknij pierwszy dzień, a następnie ostatni dzień urlopu</p>
+          <button type="button" class="btn-clear" (click)="clearSelection()" *ngIf="selectedStartDate">
+            Wyczyść wybór
+          </button>
+        </div>
+
+        <div class="calendar-grid">
+          <!-- Nagłówki dni tygodnia -->
+          <div class="calendar-day-header">Pon</div>
+          <div class="calendar-day-header">Wt</div>
+          <div class="calendar-day-header">Śr</div>
+          <div class="calendar-day-header">Czw</div>
+          <div class="calendar-day-header">Pt</div>
+          <div class="calendar-day-header">Sob</div>
+          <div class="calendar-day-header">Nie</div>
+
+          <!-- Dni miesiąca -->
+          <div 
+            *ngFor="let day of getCalendarDays()" 
+            class="calendar-day"
+            [class.other-month]="!isCurrentMonth(day)"
+            [class.today]="isToday(day)"
+            [class.past]="isPastDate(day)"
+            [class.selected]="isSelected(day)"
+            [class.in-range]="isInRange(day)"
+            [class.has-leave]="getPeopleOnLeave(day).length > 0"
+            (click)="onDateClick(day)"
+          >
+            <div class="day-number">{{ day.getDate() }}</div>
+            <div class="day-info" *ngIf="getPeopleOnLeave(day).length > 0">
+              <div class="leave-indicator" 
+                   [title]="getPeopleOnLeave(day).join(', ')">
+                {{ getPeopleOnLeave(day).length }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="calendar-legend">
+          <div class="legend-item">
+            <div class="legend-color has-leave-color"></div>
+            <span>Osoby na urlopie</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color selected-color"></div>
+            <span>Wybrane dni</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color today-color"></div>
+            <span>Dzisiaj</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formularz po prawej stronie -->
+      <div class="form-container">
+      <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()">
+        <!-- Typ urlopu -->
+        <div class="form-group">
+          <label for="leaveType">Typ urlopu *</label>
+          <select id="leaveType" formControlName="leaveType" class="form-control">
+            <option value="">-- Wybierz typ urlopu --</option>
+            <option *ngFor="let type of leaveTypes" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="getFieldError('leaveType')">
+            {{ getFieldError('leaveType') }}
+          </div>
+        </div>
+
+        <!-- Data rozpoczęcia -->
+        <div class="form-group">
+          <label for="startDate">Data rozpoczęcia *</label>
+          <input 
+            type="date" 
+            id="startDate" 
+            formControlName="startDate" 
+            class="form-control"
+          />
+          <div class="error-message" *ngIf="getFieldError('startDate')">
+            {{ getFieldError('startDate') }}
+          </div>
+        </div>
+
+        <!-- Data zakończenia -->
+        <div class="form-group">
+          <label for="endDate">Data zakończenia *</label>
+          <input 
+            type="date" 
+            id="endDate" 
+            formControlName="endDate" 
+            class="form-control"
+          />
+          <div class="error-message" *ngIf="getFieldError('endDate')">
+            {{ getFieldError('endDate') }}
+          </div>
+        </div>
+
+        <!-- Liczba dni -->
+        <div class="form-group">
+          <label for="requestedDays">Liczba dni *</label>
+          <input 
+            type="number" 
+            id="requestedDays" 
+            formControlName="requestedDays" 
+            class="form-control"
+            min="1"
+            max="365"
+          />
+          <div class="error-message" *ngIf="getFieldError('requestedDays')">
+            {{ getFieldError('requestedDays') }}
+          </div>
+        </div>
+
+        <!-- Powód/Opis -->
+        <div class="form-group">
+          <label for="reason">Powód (opcjonalnie)</label>
+          <textarea 
+            id="reason" 
+            formControlName="reason" 
+            class="form-control"
+            rows="4"
+            placeholder="Opisz powód wniosku urlopowego..."
+          ></textarea>
+          <div class="error-message" *ngIf="getFieldError('reason')">
+            {{ getFieldError('reason') }}
+          </div>
+        </div>
+
+        <!-- Pilny wniosek -->
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              formControlName="urgentRequest"
+            />
+            <span class="checkmark"></span>
+            Pilny wniosek
+          </label>
+          <small class="help-text">
+            Zaznacz jeśli wniosek wymaga szybkiego rozpatrzenia
+          </small>
+        </div>
+
+        <!-- Błąd -->
+        <div class="error-message" *ngIf="error">
+          {{ error }}
+        </div>
+
+        <!-- Przyciski -->
+        <div class="form-actions">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            (click)="onCancel()"
+            [disabled]="submitting"
+          >
+            Anuluj
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            [disabled]="!leaveForm.valid || submitting"
+          >
+            <span *ngIf="submitting">Wysyłanie...</span>
+            <span *ngIf="!submitting">Złóż wniosek</span>
+          </button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>

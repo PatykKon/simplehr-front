@@ -1,0 +1,66 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>SimpleHR</h1>
+      <p>Zaloguj się do systemu HR</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      @if (error()) {
+        <div class="error-message">
+          {{ error() }}
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="username">Nazwa użytkownika</label>
+        <input
+          type="text"
+          id="username"
+          formControlName="username"
+          class="form-control"
+          [class.invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+          placeholder="Wprowadź nazwę użytkownika"
+        >
+        @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
+          <div class="field-error">Nazwa użytkownika jest wymagana</div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Hasło</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-control"
+          [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          placeholder="Wprowadź hasło"
+        >
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <div class="field-error">Hasło jest wymagane</div>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="!loginForm.valid || loading()"
+      >
+        @if (loading()) {
+          <span class="spinner"></span>
+          Logowanie...
+        } @else {
+          Zaloguj się
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>Nie masz konta?</p>
+      <button type="button" class="btn btn-link" (click)="navigateToRegister()">
+        Zarejestruj się
+      </button>
+    </div>
+  </div>
+</div>

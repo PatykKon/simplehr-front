@@ -1,0 +1,164 @@
+<div class="schedule-list-container">
+  <div class="page-header">
+    <h1>Grafiki pracy</h1>
+    <div class="header-actions">
+      @if (canManageSchedules()) {
+        <button class="btn btn-primary" (click)="router.navigate(['/schedules/create'])">
+          <span class="btn-icon">➕</span>
+          Nowy grafik
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Filtry -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label for="statusFilter">Status:</label>
+      <select 
+        id="statusFilter" 
+        class="form-control"
+        [value]="selectedStatus()"
+        (change)="onStatusChange($event)"
+      >
+        <option value="">Wszystkie</option>
+        <option value="DRAFT">Szkice</option>
+        <option value="SUBMITTED">Przesłane</option>
+        <option value="APPROVED">Zatwierdzone</option>
+        <option value="REJECTED">Odrzucone</option>
+        <option value="PUBLISHED">Opublikowane</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Ładowanie grafików...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+      <button class="btn btn-sm" (click)="loadSchedules()">Spróbuj ponownie</button>
+    </div>
+  }
+
+  <!-- Schedules Table -->
+  @if (!loading() && !error() && schedules().length > 0) {
+    <div class="schedules-table-container">
+      <table class="schedules-table">
+        <thead>
+          <tr>
+            <th>Nazwa</th>
+            <th>Okres</th>
+            <th>Status</th>
+            <th>Wpisy</th>
+            <th>Utworzony</th>
+            <th>Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (schedule of schedules(); track schedule.id) {
+            <tr>
+              <td>
+                <div class="schedule-info">
+                  <h4>{{ schedule.name }}</h4>
+                  @if (schedule.description) {
+                    <p class="schedule-description">{{ schedule.description }}</p>
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="date-range">
+                  <span class="date-from">{{ schedule.startDate | date:'dd/MM/yyyy' }}</span>
+                  <span class="date-separator">-</span>
+                  <span class="date-to">{{ schedule.endDate | date:'dd/MM/yyyy' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" [class]="getStatusClass(schedule.status)">
+                  {{ getStatusText(schedule.status) }}
+                </span>
+              </td>
+              <td>
+                <span class="entries-count">{{ schedule.entriesCount }}</span>
+              </td>
+              <td>
+                <span class="created-date">{{ schedule.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button 
+                    class="btn btn-sm btn-outline"
+                    (click)="viewSchedule(schedule.id)"
+                    title="Zobacz szczegóły"
+                  >
+                    👁️
+                  </button>
+                  
+                  @if (canManageSchedules() && schedule.status === WorkScheduleStatus.DRAFT) {
+                    <button 
+                      class="btn btn-sm btn-outline"
+                      (click)="editSchedule(schedule.id)"
+                      title="Edytuj"
+                    >
+                      ✏️
+                    </button>
+                  }
+                  
+                  @if (canManageSchedules() && schedule.status === WorkScheduleStatus.DRAFT) {
+                    <button 
+                      class="btn btn-sm btn-success"
+                      (click)="submitSchedule(schedule)"
+                      title="Prześlij do zatwierdzenia"
+                    >
+                      📤
+                    </button>
+                  }
+                  
+                  @if (canApproveSchedules() && schedule.status === WorkScheduleStatus.SUBMITTED) {
+                    <button 
+                      class="btn btn-sm btn-success"
+                      (click)="approveSchedule(schedule)"
+                      title="Zatwierdź"
+                    >
+                      ✅
+                    </button>
+                  }
+                  
+                  @if (canApproveSchedules() && schedule.status === WorkScheduleStatus.APPROVED) {
+                    <button 
+                      class="btn btn-sm btn-primary"
+                      (click)="publishSchedule(schedule)"
+                      title="Opublikuj"
+                    >
+                      📋
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && !error() && schedules().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <h3>Brak grafików</h3>
+      <p>Nie znaleziono grafików dla wybranych kryteriów.</p>
+      @if (canManageSchedules()) {
+        <button class="btn btn-primary" (click)="router.navigate(['/schedules/create'])">
+          Utwórz pierwszy grafik
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,77 @@
+import { Component, signal } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
+import { RegisterRequest } from '../../models/auth.models';
+
+@Component({
+  selector: 'app-register',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css']
+})
+export class RegisterComponent {
+  registerForm: FormGroup;
+  loading = signal(false);
+  error = signal<string | null>(null);
+  success = signal<string | null>(null);
+
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {
+    this.registerForm = this.fb.group({
+      // Dane użytkownika
+      username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      firstName: ['', [Validators.required]],
+      lastName: ['', [Validators.required]],
+      
+      // Dane firmy
+      companyName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      taxId: [''],
+      companyEmail: ['', [Validators.email]],
+      companyPhone: [''],
+      address: [''],
+      city: [''],
+      country: [''],
+      postalCode: ['']
+    });
+  }
+
+  onSubmit(): void {
+    if (this.registerForm.valid) {
+      this.loading.set(true);
+      this.error.set(null);
+      this.success.set(null);
+
+      const registerRequest: RegisterRequest = this.registerForm.value;
+
+      this.authService.register(registerRequest).subscribe({
+        next: (response) => {
+          console.log('Registration successful', response);
+          this.success.set('Rejestracja przebiegła pomyślnie! Możesz się teraz zalogować.');
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 2000);
+        },
+        error: (error) => {
+          console.error('Registration failed', error);
+          this.error.set(error.error?.message || 'Błąd rejestracji. Spróbuj ponownie.');
+          this.loading.set(false);
+        },
+        complete: () => {
+          this.loading.set(false);
+        }
+      });
+    }
+  }
+
+  navigateToLogin(): void {
+    this.router.navigate(['/login']);
+  }
+}

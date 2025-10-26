@@ -1,0 +1,320 @@
+<!-- Header -->
+<div class="page-header">
+  <div class="header-content">
+    <h1 class="page-title">
+      <i class="fas fa-users-cog"></i>
+      Panel HR - Zarządzanie wnioskami urlopowymi
+    </h1>
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="showFilters = !showFilters">
+        <i class="fas fa-filter"></i>
+        Filtry
+      </button>
+      <button class="btn btn-primary" (click)="refreshData()">
+        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+        Odśwież
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Error message -->
+<div *ngIf="error" class="alert alert-error">
+  <i class="fas fa-exclamation-triangle"></i>
+  {{ error }}
+  <button class="alert-close" (click)="error = null">
+    <i class="fas fa-times"></i>
+  </button>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon total">
+      <i class="fas fa-file-alt"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.total }}</div>
+      <div class="stat-label">Wszystkich wniosków</div>
+    </div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-icon pending">
+      <i class="fas fa-clock"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.pending }}</div>
+      <div class="stat-label">Oczekujących</div>
+    </div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-icon approved">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.approved }}</div>
+      <div class="stat-label">Zatwierdzonych</div>
+    </div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-icon rejected">
+      <i class="fas fa-times-circle"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.rejected }}</div>
+      <div class="stat-label">Odrzuconych</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="filters-panel" [class.show]="showFilters">
+  <form [formGroup]="filterForm" class="filters-form">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="status">Status</label>
+        <select id="status" formControlName="status" class="form-control">
+          <option *ngFor="let option of statusOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="leaveType">Typ urlopu</label>
+        <select id="leaveType" formControlName="leaveType" class="form-control">
+          <option *ngFor="let option of leaveTypeOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="startDate">Od daty</label>
+        <input id="startDate" type="date" formControlName="startDate" class="form-control">
+      </div>
+      
+      <div class="filter-group">
+        <label for="endDate">Do daty</label>
+        <input id="endDate" type="date" formControlName="endDate" class="form-control">
+      </div>
+      
+      <div class="filter-group">
+        <label for="searchTerm">Szukaj</label>
+        <input id="searchTerm" type="text" formControlName="searchTerm" 
+               placeholder="Imię, nazwisko, tytuł..." class="form-control">
+      </div>
+      
+      <div class="filter-actions">
+        <button type="button" class="btn btn-outline" (click)="clearFilters()">
+          <i class="fas fa-eraser"></i>
+          Wyczyść
+        </button>
+        <button type="button" class="btn btn-primary" (click)="loadProposals()">
+          <i class="fas fa-search"></i>
+          Szukaj
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div class="bulk-actions-bar" *ngIf="selectedProposals.size > 0">
+  <div class="bulk-info">
+    <span class="selected-count">{{ selectedProposals.size }} wybranych wniosków</span>
+  </div>
+  <div class="bulk-buttons">
+    <button class="btn btn-success" (click)="openBulkAction('approve')">
+      <i class="fas fa-check"></i>
+      Zatwierdź wybrane
+    </button>
+    <button class="btn btn-danger" (click)="openBulkAction('reject')">
+      <i class="fas fa-times"></i>
+      Odrzuć wybrane
+    </button>
+  </div>
+</div>
+
+<!-- Proposals Table -->
+<div class="table-container">
+  <div class="table-header">
+    <div class="table-title">
+      Wnioski urlopowe ({{ filteredProposals.length }})
+    </div>
+  </div>
+  
+  <div class="table-wrapper">
+    <table class="proposals-table">
+      <thead>
+        <tr>
+          <th class="checkbox-col">
+            <input type="checkbox" 
+                   [checked]="isAllSelected()" 
+                   [indeterminate]="isIndeterminate()"
+                   (change)="toggleAllSelection()">
+          </th>
+          <th class="sortable" (click)="setSortBy('employeeName')">
+            Pracownik
+            <i class="fas fa-{{ getSortIcon('employeeName') }}"></i>
+          </th>
+          <th>Typ urlopu</th>
+          <th class="sortable" (click)="setSortBy('startDate')">
+            Okres
+            <i class="fas fa-{{ getSortIcon('startDate') }}"></i>
+          </th>
+          <th>Dni</th>
+          <th>Status</th>
+          <th class="sortable" (click)="setSortBy('submittedAt')">
+            Złożono
+            <i class="fas fa-{{ getSortIcon('submittedAt') }}"></i>
+          </th>
+          <th class="actions-col">Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="loading" class="loading-row">
+          <td colspan="8" class="text-center">
+            <div class="loading-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+              Ładowanie wniosków...
+            </div>
+          </td>
+        </tr>
+        
+        <tr *ngIf="!loading && filteredProposals.length === 0" class="empty-row">
+          <td colspan="8" class="text-center">
+            <div class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>Brak wniosków do wyświetlenia</p>
+            </div>
+          </td>
+        </tr>
+        
+        <tr *ngFor="let proposal of filteredProposals" 
+            class="proposal-row" 
+            [class.selected]="selectedProposals.has(proposal.id)">
+          
+          <td class="checkbox-col">
+       <input type="checkbox" 
+         *ngIf="proposal.status === 'SUBMITTED'"
+         [checked]="selectedProposals.has(proposal.id)"
+         (change)="toggleSelection(proposal.id)">
+          </td>
+          
+          <td class="employee-cell">
+            <div class="employee-info">
+              <div class="employee-name">{{ proposal.userFirstName }} {{ proposal.userLastName }}</div>
+              <div class="employee-username">@{{ proposal.userName }}</div>
+            </div>
+          </td>
+          
+          <td class="leave-type-cell">
+            <span class="leave-type-badge" [attr.data-type]="proposal.leaveType">
+              {{ getLeaveTypeLabel(proposal.leaveType) }}
+            </span>
+          </td>
+          
+          <td class="period-cell">
+            <div class="date-range">
+              <div class="date-from">{{ formatDate(proposal.startDate) }}</div>
+              <div class="date-separator">-</div>
+              <div class="date-to">{{ formatDate(proposal.endDate) }}</div>
+            </div>
+          </td>
+          
+          <td class="days-cell">
+            <span class="days-count">{{ proposal.requestedDays }} dni</span>
+          </td>
+          
+          <td class="status-cell">
+            <span class="status-badge {{ getStatusClass(proposal.status) }}">
+              {{ getStatusLabel(proposal.status) }}
+            </span>
+          </td>
+          
+          <td class="submitted-cell">
+            <div class="date-info">
+              <div class="date">{{ formatDate(proposal.submittedAt) }}</div>
+              <div class="time">{{ proposal.submittedAt | date:'HH:mm' }}</div>
+            </div>
+          </td>
+          
+          <td class="actions-cell">
+            <div class="action-buttons">
+              <button class="btn btn-sm btn-outline" [routerLink]="['/leave-requests', proposal.id]">
+                <i class="fas fa-eye"></i>
+                Szczegóły
+              </button>
+              
+              <div class="quick-actions" *ngIf="proposal.status === 'SUBMITTED'">
+                <button class="btn btn-sm btn-success" 
+                        (click)="approveProposal(proposal.id, 'Szybkie zatwierdzenie')">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" 
+                        (click)="rejectProposal(proposal.id, 'Odrzucono z panelu HR')">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal-overlay" *ngIf="showBulkModal" (click)="closeBulkModal()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-title">
+        {{ bulkActionType === 'approve' ? 'Zatwierdź' : 'Odrzuć' }} wybrane wnioski
+      </h3>
+      <button class="modal-close" (click)="closeBulkModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <p>
+        Czy na pewno chcesz {{ bulkActionType === 'approve' ? 'zatwierdzić' : 'odrzucić' }} 
+        <strong>{{ selectedProposals.size }}</strong> wybranych wniosków?
+      </p>
+      
+      <form [formGroup]="bulkActionForm">
+        <div class="form-group">
+          <label for="comment">
+            {{ bulkActionType === 'approve' ? 'Komentarz (opcjonalny)' : 'Powód odrzucenia (wymagany)' }}
+          </label>
+          <textarea id="comment" 
+                    formControlName="comment" 
+                    class="form-control"
+                    rows="3"
+                    [placeholder]="bulkActionType === 'approve' ? 'Dodatkowy komentarz...' : 'Podaj powód odrzucenia...'">
+          </textarea>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="closeBulkModal()">
+        Anuluj
+      </button>
+      <button class="btn" 
+              [class.btn-success]="bulkActionType === 'approve'"
+              [class.btn-danger]="bulkActionType === 'reject'"
+              [disabled]="loading || (bulkActionType === 'reject' && !bulkActionForm.get('comment')?.value)"
+              (click)="executeBulkAction()">
+        <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+        <i class="fas fa-check" *ngIf="!loading && bulkActionType === 'approve'"></i>
+        <i class="fas fa-times" *ngIf="!loading && bulkActionType === 'reject'"></i>
+        {{ bulkActionType === 'approve' ? 'Zatwierdź' : 'Odrzuć' }}
+      </button>
+    </div>
+  </div>
+</div>

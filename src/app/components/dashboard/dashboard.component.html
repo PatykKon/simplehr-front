@@ -1,0 +1,233 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <h1>SimpleHR</h1>
+        <span class="company-info" *ngIf="currentUser()">
+          Firma ID: {{ currentUser()?.companyId }}
+        </span>
+      </div>
+      
+      <div class="user-section">
+        <div class="user-info" *ngIf="currentUser()">
+          <div class="user-avatar">
+            {{ currentUser()?.firstName?.charAt(0) }}{{ currentUser()?.lastName?.charAt(0) }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</span>
+            <span class="user-username">{{ currentUser()?.username }}</span>
+            <div class="user-roles">
+              <span class="role-badge" *ngFor="let role of currentUser()?.roles">
+                {{ role }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline logout-btn" (click)="logout()">
+          Wyloguj
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="dashboard-main">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h3>Menu główne</h3>
+          <ul class="nav-list">
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/dashboard')"
+              >
+                <span class="nav-icon">🏠</span>
+                Dashboard
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3>Grafiki pracy</h3>
+          <ul class="nav-list">
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/schedules')"
+              >
+                <span class="nav-icon">📅</span>
+                Wszystkie grafiki
+              </button>
+            </li>
+            <li *ngIf="canManageSchedules()">
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/schedules/create')"
+              >
+                <span class="nav-icon">➕</span>
+                Nowy grafik
+              </button>
+            </li>
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/schedules/published')"
+              >
+                <span class="nav-icon">📋</span>
+                Opublikowane
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3>Wnioski urlopowe</h3>
+          <ul class="nav-list">
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/leave-requests')"
+              >
+                <span class="nav-icon">🏖️</span>
+                Moje wnioski
+              </button>
+            </li>
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/leave-requests/create')"
+              >
+                <span class="nav-icon">➕</span>
+                Nowy wniosek
+              </button>
+            </li>
+            <li *ngIf="canManageSystem()">
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/hr/leave-management')"
+              >
+                <span class="nav-icon">⚙️</span>
+                Zarządzaj wnioskami
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        @if (canManageSystem()) {
+          <div class="nav-section">
+            <h3>Administracja</h3>
+            <ul class="nav-list">
+              <li>
+                <button 
+                  class="nav-item"
+                  (click)="navigateTo('/admin')"
+                >
+                  <span class="nav-icon">🔧</span>
+                  Panel Administratora
+                </button>
+              </li>
+              <li>
+                <button 
+                  class="nav-item"
+                  (click)="navigateTo('/admin/employees/add')"
+                >
+                  <span class="nav-icon">�➕</span>
+                  Dodaj Pracownika
+                </button>
+              </li>
+              <li>
+                <button 
+                  class="nav-item"
+                  (click)="navigateTo('/leave-configs')"
+                >
+                  <span class="nav-icon">⚙️</span>
+                  Lista urlopów
+                </button>
+              </li>
+            </ul>
+          </div>
+      }
+      
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      <div class="content-header">
+        <h2>Witaj w systemie SimpleHR!</h2>
+        <p>Zarządzaj grafikami pracy i wnioskami urlopowymi swojej firmy.</p>
+      </div>
+
+      <!-- Quick Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-content">
+            <h3>Grafiki</h3>
+            <p>Zarządzaj planami pracy</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">🏖️</div>
+          <div class="stat-content">
+            <h3>Urlopy</h3>
+            <p>Składaj i zarządzaj wnioskami</p>
+          </div>
+        </div>
+
+        @if (canManageSystem()) {
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+              <h3>Pracownicy</h3>
+              <p>Zarządzaj zespołem</p>
+            </div>
+          </div>
+        }
+
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <h3>Raporty</h3>
+            <p>Analizuj dane</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h3>Szybkie akcje</h3>
+        <div class="actions-grid">
+          @if (canManageSchedules()) {
+            <button class="action-btn" (click)="navigateTo('/schedules/create')">
+              <span class="action-icon">📅</span>
+              <span>Utwórz nowy grafik</span>
+            </button>
+          }
+          
+          <button class="action-btn" (click)="navigateTo('/leave-requests/create')">
+            <span class="action-icon">🏖️</span>
+            <span>Złóż wniosek urlopowy</span>
+          </button>
+          
+          <button class="action-btn" (click)="navigateTo('/schedules/published')">
+            <span class="action-icon">📋</span>
+            <span>Zobacz aktualny grafik</span>
+          </button>
+          
+          @if (canManageSystem()) {
+            <button class="action-btn" (click)="navigateTo('/admin')">
+              <span class="action-icon">�</span>
+              <span>Panel Administratora</span>
+            </button>
+          }
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

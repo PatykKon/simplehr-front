@@ -1,0 +1,130 @@
+<div class="leave-requests-container">
+  <div class="page-header">
+    <h1>Moje wnioski urlopowe</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="createNewRequest()">
+        <span class="btn-icon">➕</span>
+        Nowy wniosek
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Ładowanie wniosków...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+      <button class="btn btn-sm" (click)="loadLeaveRequests()">Spróbuj ponownie</button>
+    </div>
+  }
+
+  <!-- Leave Requests List -->
+  @if (!loading() && !error() && leaveRequests().length > 0) {
+    <div class="requests-grid">
+      @for (request of leaveRequests(); track request.id) {
+        <div class="request-card">
+          <div class="card-header">
+            <div class="request-type">
+              <h3>{{ request.leaveType }}</h3>
+              @if (request.urgentRequest) {
+                <span class="urgent-badge">Pilny</span>
+              }
+            </div>
+            <span class="status-badge" [class]="getStatusClass(request.status)">
+              {{ getStatusText(request.status) }}
+            </span>
+          </div>
+
+          <div class="card-content">
+            <div class="date-info">
+              <div class="date-range">
+                <span class="date-label">Okres:</span>
+                <span class="dates">
+                  {{ request.startDate | date:'dd/MM/yyyy' }} - {{ request.endDate | date:'dd/MM/yyyy' }}
+                </span>
+              </div>
+              <div class="days-count">
+                <span class="days-number">{{ request.requestedDays }}</span>
+                <span class="days-text">{{ getDaysText(request.requestedDays) }}</span>
+              </div>
+            </div>
+
+            @if (request.reason) {
+              <div class="reason">
+                <span class="reason-label">Powód:</span>
+                <p class="reason-text">{{ request.reason }}</p>
+              </div>
+            }
+
+            <div class="request-meta">
+              <div class="submitted-info">
+                <span class="meta-label">Złożony:</span>
+                <span class="meta-value">{{ request.submittedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              
+              @if (request.processedAt && request.processedByUserName) {
+                <div class="processed-info">
+                  <span class="meta-label">Przetworzony przez:</span>
+                  <span class="meta-value">{{ request.processedByUserName }} ({{ request.processedAt | date:'dd/MM/yyyy HH:mm' }})</span>
+                </div>
+              }
+            </div>
+
+            @if (request.rejectionReason) {
+              <div class="rejection-reason">
+                <span class="reason-label">Powód odrzucenia:</span>
+                <p class="rejection-text">{{ request.rejectionReason }}</p>
+              </div>
+            }
+
+            @if (request.approverComments) {
+              <div class="approver-comments">
+                <span class="reason-label">Komentarz:</span>
+                <p class="comment-text">{{ request.approverComments }}</p>
+              </div>
+            }
+          </div>
+
+          <div class="card-actions">
+            <button 
+              class="btn btn-sm btn-outline"
+              (click)="viewRequest(request.id)"
+              title="Zobacz szczegóły"
+            >
+              👁️ Szczegóły
+            </button>
+            
+            @if (canEditRequest(request)) {
+              <button 
+                class="btn btn-sm btn-outline"
+                (click)="editRequest(request.id)"
+                title="Edytuj wniosek"
+              >
+                ✏️ Edytuj
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && !error() && leaveRequests().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">🏖️</div>
+      <h3>Brak wniosków urlopowych</h3>
+      <p>Nie masz jeszcze żadnych wniosków urlopowych.</p>
+      <button class="btn btn-primary" (click)="createNewRequest()">
+        Złóż pierwszy wniosek
+      </button>
+    </div>
+  }
+</div>
