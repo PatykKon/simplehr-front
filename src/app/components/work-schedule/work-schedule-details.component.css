@@ -1,0 +1,73 @@
+.ws-details-container { padding: 20px; max-width: 1800px; margin: 0 auto; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.header h1 { margin: 0; font-size: 1.4rem; }
+.header .spacer { flex: 1; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.label { font-size: 0.85rem; color: #64748b; }
+.value { font-weight: 600; color: #0f172a; }
+.badge { background: #eef2ff; color: #1e40af; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; }
+.badge.hours { background: #ecfeff; color: #0e7490; }
+.table-wrapper { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 0.92rem; }
+
+/* Groups */
+.groups { display: grid; gap: 10px; }
+.group { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+.group-header { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 10px 12px; background: #f8fafc; cursor: pointer; }
+.group-header .name { font-weight: 600; color: #0f172a; }
+.group-header .meta { display: flex; gap: 8px; align-items: center; }
+.group-header .chevron { color: #64748b; font-size: 0.9rem; }
+.group-body { padding: 8px 12px 12px; background: #fff; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-item .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #cbd5e1; }
+.legend-item .label { font-size: 12px; color: #334155; }
+
+.muted { color: #6b7280; font-size: 12px; }
+
+/* Make calendar event content stack name above time in details view */
+.ws-event.vertical { 
+	display: flex; 
+	flex-direction: column; 
+	align-items: flex-start; 
+	gap: 2px; 
+	/* override global compact behavior to allow wrapping inside day cell */
+	white-space: normal; 
+	overflow: visible; 
+	text-overflow: clip; 
+	word-break: break-word;
+}
+.ws-event.vertical .name { font-weight: 600; color: #0f172a; }
+.ws-event.vertical .time { color: #475569; }
+
+/* Modal */
+.modal-open { overflow: hidden; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; }
+.modal { position: fixed; z-index: 1001; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; border-radius: 8px; width: min(520px, 92vw); box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 16px; }
+.modal h3 { margin-top: 0; }
+.modal label { display: block; font-weight: 600; margin-bottom: 6px; }
+.modal textarea { width: 100%; resize: vertical; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.btn-danger { background: #ef4444; color: #fff; }
+
+/* Matrix table view */
+.ws-table th.sun, .ws-table td.sun { background: #fff7ed; }
+.ws-table th.sat, .ws-table td.sat { background: #e0f2fe; }
+.ws-table th.holiday, .ws-table td.holiday { background: #fee2e2; }
+.ws-table .cell-time { display: flex; flex-direction: column; gap: 2px; align-items: center; line-height: 1.1; }
+.ws-table .cell-time .start { font-weight: 600; color: #0f172a; }
+.ws-table .cell-time .end { color: #334155; }
+.ws-table table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.ws-table th, .ws-table td { padding: 3px 4px; text-align: center; }
+.ws-table th.emp, .ws-table td.emp { text-align: left; }
+.ws-table th.emp { width: 160px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+.ws-table th.day { border-bottom: 1px solid #e5e7eb; font-weight: 600; }
+.ws-table td.day { border-left: 1px solid #f8fafc; border-bottom: 1px solid #f1f5f9; }
+.ws-table .sticky { position: sticky; left: 0; z-index: 1; background: #fff; }
+.ws-table .name-stack { display: flex; flex-direction: column; line-height: 1.0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-table .name-stack .first { font-weight: 600; color: #0f172a; font-size: 0.9rem; }
+.ws-table .name-stack .last { color: #334155; font-size: 0.8rem; }

@@ -2,11 +2,13 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { FormsModule } from '@angular/forms';
+import { WorkTimeAdminService } from '../../services/work-time-admin.service';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="admin-panel">
       <div class="admin-header">
@@ -15,22 +17,11 @@ import { AuthService } from '../../services/auth.service';
       </div>
 
       <div class="admin-cards">
-        <div class="admin-card" routerLink="/admin/employees/add">
-          <div class="card-icon">👤➕</div>
-          <h3>Dodaj Pracownika</h3>
-          <p>Dodaj nowego pracownika do systemu</p>
-        </div>
-
-        <div class="admin-card" routerLink="/admin/employees/import">
-          <div class="card-icon">📁⬆️</div>
-          <h3>Import Pracowników</h3>
-          <p>Importuj pracowników z pliku CSV</p>
-        </div>
-
-        <div class="admin-card" routerLink="/admin/employees/list">
-          <div class="card-icon">👥</div>
-          <h3>Lista Pracowników</h3>
-          <p>Zobacz i zarządzaj wszystkimi pracownikami</p>
+        <!-- Users hub (consolidated) -->
+        <div class="admin-card" routerLink="/admin/users">
+          <div class="card-icon">�</div>
+          <h3>Użytkownicy</h3>
+          <p>Dodaj, importuj i zarządzaj pracownikami</p>
         </div>
 
         <div class="admin-card" routerLink="/admin/leave-balances">
@@ -51,10 +42,23 @@ import { AuthService } from '../../services/auth.service';
           <p>Zarządzaj typami i regułami urlopów</p>
         </div>
 
+        <div class="admin-card" routerLink="/admin/schedule-configs">
+          <div class="card-icon">📅⚙️</div>
+          <h3>Konfiguracje Grafików</h3>
+          <p>Wzorce: stałe godziny, rotacje, cykle</p>
+        </div>
+
         <div class="admin-card" routerLink="/admin/settings">
           <div class="card-icon">⚙️</div>
           <h3>Ustawienia</h3>
           <p>Konfiguracja systemu</p>
+        </div>
+
+        <!-- Work Time Admin entry -->
+        <div class="admin-card" routerLink="/admin/work-time">
+          <div class="card-icon">🕒⚙️</div>
+          <h3>Ewidencja godzin</h3>
+          <p>Przelicz dni i sprawdź historię operacji</p>
         </div>
       </div>
     </div>
@@ -144,8 +148,10 @@ import { AuthService } from '../../services/auth.service';
         font-size: 2rem;
       }
     }
+
+    .muted { color: #6b7280; margin-top: 8px; font-size: 0.9rem; }
   `]
 })
 export class AdminPanelComponent {
-  constructor(public authService: AuthService) {}
+  constructor(public authService: AuthService, private wtAdmin: WorkTimeAdminService) {}
 }

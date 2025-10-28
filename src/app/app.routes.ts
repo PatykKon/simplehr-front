@@ -11,7 +11,10 @@ import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  {
+    path: '',
+    loadComponent: () => import('./components/public/landing.component').then(m => m.LandingComponent)
+  },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { 
@@ -19,10 +22,69 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [AuthGuard]
   },
+  {
+    path: 'leave',
+    loadComponent: () => import('./components/leave-requests/leave-hub.component').then(m => m.LeaveHubComponent),
+    canActivate: [AuthGuard]
+  },
+  // Ewidencja czasu pracy
+  {
+    path: 'work-time',
+    loadComponent: () => import('./components/work-time/work-time-calendar.component').then(m => m.WorkTimeCalendarComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'work-time/config',
+    loadComponent: () => import('./components/work-time/work-time-config.component').then(m => m.WorkTimeConfigComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'work-time/day/:date',
+    loadComponent: () => import('./components/work-time/work-time-day.component').then(m => m.WorkTimeDayComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'work-time-records',
+    loadComponent: () => import('./components/work-time-record/work-time-record-list.component').then(m => m.WorkTimeRecordListComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'work-time-records/:id',
+    loadComponent: () => import('./components/work-time-record/work-time-record-details.component').then(m => m.WorkTimeRecordDetailsComponent),
+    canActivate: [AuthGuard]
+  },
   // Routing dla grafików pracy
   { 
     path: 'schedules', 
     component: WorkScheduleListComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'schedules/hub',
+    loadComponent: () => import('./components/work-schedule/schedules-hub.component').then(m => m.SchedulesHubComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'schedules/published',
+    component: WorkScheduleListComponent,
+    canActivate: [AuthGuard],
+    data: { presetStatus: 'PUBLISHED', title: 'Opublikowane grafiki' }
+  },
+  {
+    path: 'schedules/create',
+    loadComponent: () => import('./components/work-schedule/work-schedule-create.component').then(m => m.WorkScheduleCreateComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
+  },
+  {
+    path: 'schedules/:id/edit',
+    loadComponent: () => import('./components/work-schedule/work-schedule-create.component').then(m => m.WorkScheduleCreateComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
+  },
+  {
+    path: 'schedules/:id',
+    loadComponent: () => import('./components/work-schedule/work-schedule-details.component').then(m => m.WorkScheduleDetailsComponent),
     canActivate: [AuthGuard]
   },
   // Routing dla HR (musi być przed bardziej ogólnymi trasami)
@@ -97,10 +159,28 @@ export const routes: Routes = [
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
+    path: 'admin/schedule-configs',
+    loadComponent: () => import('./components/admin/schedule-configs/schedule-configs.component').then(m => m.ScheduleConfigsComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR'] }
+  },
+  {
     path: 'admin/leave-configuration',
     loadComponent: () => import('./components/admin/leave-configuration.component').then(m => m.LeaveConfigurationComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN'] }
   },
-  { path: '**', redirectTo: '/dashboard' }
+  {
+    path: 'admin/users',
+    loadComponent: () => import('./components/admin/users-admin.component').then(m => m.UsersAdminComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR'] }
+  },
+  {
+    path: 'admin/work-time',
+    loadComponent: () => import('./components/admin/work-time-admin.component').then(m => m.WorkTimeAdminComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR'] }
+  },
+  { path: '**', redirectTo: '/' }
 ];

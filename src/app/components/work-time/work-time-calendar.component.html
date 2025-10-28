@@ -1,0 +1,124 @@
+<div class="wtc-container">
+  <div class="wtc-layout">
+    <aside class="wtc-sidebar">
+      <div class="wtc-title">Ewidencja czasu</div>
+      <nav class="wtc-nav">
+        <a routerLink="/work-time" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span class="icon">📅</span>
+          Widok miesiąca
+        </a>
+        <a routerLink="/work-time/config" routerLinkActive="active">
+          <span class="icon">⚙️</span>
+          Konfiguracja
+        </a>
+        <a routerLink="/work-time-records" routerLinkActive="active">
+          <span class="icon">🗂️</span>
+          Moja ewidencja
+        </a>
+        <a routerLink="/leave-requests" routerLinkActive="active">
+          <span class="icon">📝</span>
+          Wnioski
+        </a>
+        <a *ngIf="canSeeOthers()" routerLink="/admin/work-time" routerLinkActive="active">
+          <span class="icon">🗓️</span>
+          Przelicz dni
+        </a>
+      </nav>
+
+      <div class="wtc-sidebar-card">
+        <div class="label">Aktualny tryb</div>
+        <div class="pill pill-mode" *ngIf="mode(); else noMode">{{ mode() }}</div>
+        <ng-template #noMode><span class="muted">(brak konfiguracji)</span></ng-template>
+      </div>
+    </aside>
+
+    <main class="wtc-main">
+      <div class="header">
+        <h2>Ewidencja czasu pracy — miesiąc</h2>
+        <div class="period-picker">
+          <button (click)="prevMonth()">←</button>
+          <button (click)="today()">Dziś</button>
+          <div class="period">{{ period() }}</div>
+          <button (click)="nextMonth()">→</button>
+        </div>
+        <div class="controls" *ngIf="canSeeOthers()">
+          <label>
+            Pracownik:
+            <input list="employees" (change)="onUserFilterChange()" [(ngModel)]="userIdFilter" placeholder="Wpisz ID lub wybierz" />
+            <datalist id="employees">
+              <option *ngFor="let e of employees()" [value]="e.id">{{ employeeLabel(e) }}</option>
+            </datalist>
+          </label>
+        </div>
+      </div>
+
+      <div class="info-bar">
+        <span class="pill pill-mode" *ngIf="mode()">Tryb: {{ mode() }}</span>
+        <span class="muted" *ngIf="!mode()">Tryb: nieznany (konf. niezaładowana)</span>
+        <span class="spacer"></span>
+        <ng-container *ngIf="monthTotals() as t">
+          <span class="summary">Efektywne: <strong>{{ t.effective | number:'1.2-2' }} h</strong></span>
+          <span class="summary">Manual: {{ t.standard | number:'1.2-2' }} + {{ t.overtime | number:'1.2-2' }} h</span>
+        </ng-container>
+      </div>
+
+      <div *ngIf="loading()" class="loading">Ładowanie...</div>
+      <div *ngIf="error()" class="error">{{ error() }}</div>
+
+      <table class="days" *ngIf="!loading() && !error()">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Plan</th>
+            <th>Punch</th>
+            <th>Manual</th>
+            <th>Efektywne</th>
+            <th>Uwagi</th>
+            <th>Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of days()" (click)="openDay(d)" class="row-click">
+            <td>
+              <span [class.leave]="d.leaveDay">{{ d.workDate }}</span>
+              <span class="pill" *ngIf="d.leaveDay">Urlop {{ d.leaveType || '' }}</span>
+            </td>
+            <td>
+              <ng-container *ngIf="d.scheduledStartTime && d.scheduledEndTime; else noneTpl">{{ d.scheduledStartTime }}–{{ d.scheduledEndTime }}</ng-container>
+            </td>
+            <td>
+              <ng-container *ngIf="d.punchInTime || d.punchOutTime; else noneTpl">
+                <span *ngIf="d.punchInTime">IN {{ d.punchInTime }}</span>
+                <span *ngIf="d.punchOutTime">OUT {{ d.punchOutTime }}</span>
+              </ng-container>
+            </td>
+            <td>
+              <ng-container *ngIf="(d.standardHours ?? 0) + (d.overtimeHours ?? 0) > 0; else noneTpl">
+                {{ d.standardHours || 0 | number:'1.2-2' }} + {{ d.overtimeHours || 0 | number:'1.2-2' }} h
+              </ng-container>
+            </td>
+            <td>
+              <span *ngIf="totalHours(d) != null">{{ totalHours(d) | number:'1.2-2' }} h</span>
+              <ng-container *ngIf="totalHours(d) == null">
+                <span class="muted">—</span>
+              </ng-container>
+            </td>
+            <td>
+              <span class="muted" *ngIf="!d.note">—</span>
+              <span *ngIf="d.note">{{ d.note }}</span>
+              <span class="pill pill-edit" *ngIf="d.editable">Edytowalne</span>
+            </td>
+            <td class="actions" (click)="$event.stopPropagation()">
+              <button *ngIf="canPunchInRow(d)" (click)="rowPunchIn(d)">Punch In</button>
+              <button *ngIf="canPunchOutRow(d)" (click)="rowPunchOut(d)">Punch Out</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #noneTpl>
+        <span class="muted">—</span>
+      </ng-template>
+    </main>
+  </div>
+</div>

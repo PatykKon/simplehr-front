@@ -1,0 +1,40 @@
+.container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+.header { display: flex; align-items: center; gap: 1rem; }
+.header h2 { margin: 0; }
+.back { padding: .3rem .6rem; }
+.badge { background: #eef2ff; color: #3730a3; padding: .15rem .5rem; border-radius: .35rem; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; align-items: start; }
+.card.wide { grid-column: 1 / -1; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: 1rem; }
+.card h3 { margin-top: 0; }
+.actions .buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
+.actions .reject { margin-top: .75rem; display: grid; gap: .5rem; }
+.actions textarea { width: 100%; min-height: 80px; }
+.danger { background: #fee2e2; border: 1px solid #fecaca; }
+.link { background: transparent; color: #2563eb; padding: 0; border: none; cursor: pointer; }
+.annex-form { display: grid; gap: .5rem; margin: .5rem 0; }
+.annex-form input, .annex-form textarea { width: 100%; }
+.annexes { width: 100%; border-collapse: collapse; }
+.annexes th, .annexes td { padding: .5rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+.loading { padding: 1rem; }
+.error { color: #b00020; padding: .5rem 1rem; background: #fde7e9; border: 1px solid #f5c2c7; }
+.muted { color: #6b7280; font-style: italic; }
+
+/* Month table */
+.month-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.month-table thead th { background: #f3f4f6; font-weight: 600; color: #374151; padding: .5rem; border-bottom: 1px solid #e5e7eb; text-align: center; }
+.month-table td { border: 1px solid #e5e7eb; vertical-align: middle; padding: .35rem; text-align: center; }
+.month-table td.weekend { background: #fafcff; }
+.month-table .hours { font-weight: 600; color: #111827; }
+.month-table .leave { font-size: .9rem; margin-top: .15rem; }
+
+@media (max-width: 900px) {
+	.grid { grid-template-columns: 1fr; }
+}
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); }
+.modal { position: fixed; inset: 0; display: grid; place-items: center; }
+.modal-content { background: #fff; border-radius: .5rem; border: 1px solid #e5e7eb; padding: 1rem; width: min(600px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+.modal-content textarea { width: 100%; min-height: 120px; margin: .5rem 0; }
+.modal-actions { display: flex; gap: .5rem; justify-content: flex-end; }

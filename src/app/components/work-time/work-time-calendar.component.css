@@ -1,0 +1,36 @@
+.wtc-container { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
+.wtc-layout { display:grid; grid-template-columns: 260px 1fr; gap: 24px; align-items:start; }
+.wtc-sidebar { background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; position: sticky; top: 16px; height: fit-content; }
+.wtc-title { font-weight: 700; color:#111827; margin-bottom: 8px; }
+.wtc-nav { display:flex; flex-direction:column; gap:6px; margin-bottom: 12px; }
+.wtc-nav a { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; color:#111827; text-decoration:none; border:1px solid transparent; }
+.wtc-nav a:hover { background:#f9fafb; border-color:#e5e7eb; }
+.wtc-nav a.active { background:#eef2ff; border-color:#c7d2fe; color:#1e3a8a; }
+.wtc-sidebar .icon { width: 1.25rem; text-align:center; }
+.wtc-sidebar-card { background:#f9fafb; border:1px dashed #e5e7eb; border-radius:10px; padding:10px; }
+.wtc-main { min-width: 0; }
+
+.header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.period-picker { display: flex; align-items: center; gap: 8px; }
+.period { font-weight: 600; min-width: 80px; text-align: center; }
+.controls { margin-left: auto; }
+
+.info-bar { display: flex; align-items: center; gap: 12px; margin: 8px 0 4px; }
+.spacer { flex: 1; }
+.summary { color: #333; }
+
+.days { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.days th, .days td { border-bottom: 1px solid #eee; padding: 8px; }
+.row-click { cursor: pointer; }
+.row-click:hover { background: #fafafa; }
+
+.pill { background: #eef; color: #335; border-radius: 10px; padding: 2px 6px; font-size: 12px; margin-left: 6px; }
+.pill-edit { background: #e5f7ed; color: #155724; }
+.pill-mode { background: #f0ebff; color: #3b2f5c; }
+.muted { color: #888; }
+.leave { color: #b00; font-weight: 600; }
+.loading { padding: 12px; }
+.error { padding: 12px; color: #a00; }
+.actions button { margin-right: 6px; }
+
+@media (max-width: 1024px) { .wtc-layout { grid-template-columns: 1fr; } .wtc-sidebar { position: relative; top: 0; } }

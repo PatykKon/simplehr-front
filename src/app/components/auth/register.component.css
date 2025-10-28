@@ -185,6 +185,15 @@
   font-size: 0.875rem;
 }
 
+.plan-banner {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
 @media (max-width: 640px) {
   .form-row {
     grid-template-columns: 1fr;

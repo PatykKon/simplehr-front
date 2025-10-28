@@ -1,0 +1,265 @@
+<div class="ws-details-container">
+  <div class="header">
+    <button class="btn" (click)="goBack()">← Wróć do listy</button>
+    <h1>Szczegóły grafiku</h1>
+    <div class="spacer"></div>
+    <div class="view-toggle" style="display:flex; gap:4px;">
+      <button class="btn" [class.btn-primary]="viewMode() === 'CALENDAR'" (click)="viewMode.set('CALENDAR')">Kalendarz</button>
+      <button class="btn" [class.btn-primary]="viewMode() === 'TABLE'" (click)="viewMode.set('TABLE')">Tabela</button>
+    </div>
+    @if (schedule()?.status === 'DRAFT' && canManage()) {
+      <button class="btn btn-primary" (click)="edit()">Edytuj</button>
+      <button class="btn btn-success" (click)="submit()">Wyślij do akceptacji</button>
+    }
+    @if (schedule()?.status === 'SUBMITTED' && canApprove()) {
+      <button class="btn btn-success" (click)="approve()">Zatwierdź</button>
+      <button class="btn" (click)="openRejectModal()">Odrzuć</button>
+    }
+    @if (schedule()?.status === 'APPROVED' && canApprove()) {
+      <button class="btn btn-primary" (click)="publish()">Opublikuj</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Ładowanie...</div>
+  }
+
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
+
+  @if (!loading() && !error() && schedule()) {
+    @let s = schedule()!;
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="label">Nazwa</div>
+          <div class="value">{{ s.name }}</div>
+        </div>
+        <div>
+          <div class="label">Status</div>
+          <div class="value"><span class="badge">{{ getStatusText(s.status) }}</span></div>
+        </div>
+        <div>
+          <div class="label">Utworzył (ID)</div>
+          <div class="value">{{ creatorName() || ('#' + s.createdByUserId) }} <span class="muted">(#{{ s.createdByUserId }})</span></div>
+        </div>
+      </div>
+      @if (s.description) {
+        <div class="row">
+          <div class="label">Opis</div>
+          <div class="value">{{ s.description }}</div>
+        </div>
+      }
+      <div class="row">
+        <div>
+          <div class="label">Okres</div>
+          <div class="value">{{ formatYMD(s.startDate) }} - {{ formatYMD(s.endDate) }}</div>
+        </div>
+        <div>
+          <div class="label">Wpisy</div>
+          <div class="value">{{ s.entries.length }}</div>
+        </div>
+        <div>
+          <div class="label">Utworzono</div>
+          <div class="value">{{ s.createdAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</div>
+        </div>
+      </div>
+    </div>
+
+    @if (viewMode() === 'CALENDAR' && calendarOptions()) {
+      <div class="card">
+        <h3>Kalendarz</h3>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.95rem; color:#334155;">
+            <input type="checkbox" [ngModel]="mergeRanges()" (ngModelChange)="mergeRanges.set($event); refreshCalendarEvents()" />
+            Scal zakresy w kalendarzu
+          </label>
+        </div>
+        @if (legend().length) {
+          <div class="legend">
+            @for (item of legend(); track item.userId) {
+              <div class="legend-item" (click)="toggleExpand(item.userId)" style="cursor:pointer;">
+                <span class="dot" [style.background-color]="item.color"></span>
+                <span class="label">{{ item.userName }}</span>
+              </div>
+            }
+          </div>
+        }
+        <full-calendar #calendar [options]="calendarOptions()!"></full-calendar>
+      </div>
+    }
+
+    @if (viewMode() === 'TABLE') {
+      <div class="card">
+        <h3>Wpisy (tabela – macierz)</h3>
+        @let dates = getScheduleDates();
+        <div class="ws-table" style="border:1px solid #e5e7eb; border-radius:6px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th class="emp sticky">Pracownik</th>
+                @for (d of dates; track d.date) {
+                  <th class="day" [class.sat]="isSaturdayDate(d.date)" [class.sun]="isSundayDate(d.date)">{{ d.day }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (emp of employeesInSchedule(); track emp.userId) {
+                <tr>
+                  <td class="emp sticky">
+                    <div class="name-stack">
+                      <div class="first">{{ emp.userName }}</div>
+                    </div>
+                  </td>
+                  @for (d of dates; track d.date) {
+                    @let entry = getEntryFor(emp.userId, d.date);
+                    <td class="day" [class.sat]="isSaturdayDate(d.date)" [class.sun]="isSundayDate(d.date)">
+                      @if (entry) {
+                        <div class="cell-time">
+                          <div class="start">{{ formatHM(entry.startTime) }}</div>
+                          <div class="end">{{ formatHM(entry.endTime) }}</div>
+                        </div>
+                      } @else {
+                        <span style="color:#94a3b8;">—</span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Usunięto: płaska tabela wpisów na prośbę -->
+
+    <div class="card">
+      <h3>Wpisy per pracownik</h3>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+        <input type="text" placeholder="Filtruj pracowników" [ngModel]="nameFilter()" (ngModelChange)="onFilterChange($event)" style="flex:1; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px;" />
+        @if (nameFilter()) {
+          <button class="btn" (click)="onFilterChange('')">Wyczyść</button>
+        }
+      </div>
+      @if (!s.entries || s.entries.length === 0) {
+        <p>Brak wpisów w grafiku.</p>
+      } @else {
+        <div class="groups">
+          @for (g of groupedEntries(); track g.userId) {
+            <div class="group">
+              <div class="group-header" (click)="toggleExpand(g.userId)">
+                <div class="name">{{ g.userName }}</div>
+                <div class="meta">
+                  <span class="badge">{{ g.entries.length }} dni</span>
+                  <span class="badge hours" title="Suma godzin">{{ g.totalHours | number:'1.0-1' }} h</span>
+                  <span class="badge" title="Nadgodziny">Nadg.: {{ g.overtimeHours | number:'1.0-1' }} h ({{ g.overtimeDays }} dni)</span>
+                </div>
+                <div class="chevron">{{ expandedEmployees().has(g.userId) ? '▾' : '▸' }}</div>
+              </div>
+              @if (expandedEmployees().has(g.userId)) {
+                <div class="group-body">
+                  <div class="muted" style="margin-bottom:6px;">
+                    Zaplanowane: <strong>{{ g.entries.length }}</strong> dni, <strong>{{ g.totalHours | number:'1.0-1' }}</strong> h •
+                    Nadg.: <strong>{{ g.overtimeHours | number:'1.0-1' }}</strong> h ({{ g.overtimeDays }} dni)
+                  </div>
+                  @let leaves = employeeLeaves()[g.userId];
+                  <div class="muted" style="margin-bottom:8px;">
+                    Urlopy: <strong>{{ leaves.length }}</strong>
+                    @if (leaves.length) {
+                      ({{ formatLeaveList(leaves) }})
+                    } @else {
+                      (brak)
+                    }
+                  </div>
+                  <div class="table-wrapper">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Okres</th>
+                          <th>Godziny</th>
+                          <th>Nadgodziny</th>
+                          <th>Dni</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (r of compressEntries(g.entries); track r.startDate + '-' + r.endDate + '-' + r.startTime + '-' + r.endTime) {
+                          <tr>
+                            <td>
+                              @if (r.startDate === r.endDate) {
+                                {{ formatYMD(r.startDate) }}
+                              } @else {
+                                {{ formatYMD(r.startDate) }} - {{ formatYMD(r.endDate) }}
+                              }
+                            </td>
+                            <td>{{ r.startTime }} - {{ r.endTime }}</td>
+                            <td>{{ r.isOvertime ? 'Tak' : 'Nie' }}</td>
+                            <td>{{ r.days }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h3>Historia zmian</h3>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.95rem; color:#334155;">
+          <input type="checkbox" [ngModel]="hideMinorHistory()" (ngModelChange)="hideMinorHistory.set($event)" />
+          Ukryj drobne zmiany (dodanie/aktualizacja/usunięcie wpisu)
+        </label>
+      </div>
+      @if (!history().length) {
+        <p>Brak historii zmian.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Wersja</th>
+                <th>Zmienił</th>
+                <th>Data</th>
+                <th>Typ zmiany</th>
+                <th>Opis</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of filteredHistory(); track h.id) {
+                <tr>
+                  <td>{{ h.version }}</td>
+                  <td>{{ h.changedBy }}</td>
+                  <td>{{ h.changedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ h.changeType }}</td>
+                  <td>{{ h.changeDescription || '-' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Reject modal -->
+@if (showRejectModal()) {
+  <div class="modal-overlay" (click)="cancelReject()"></div>
+  <div class="modal">
+    <h3>Odrzuć grafik</h3>
+    <label for="reject-reason">Powód odrzucenia</label>
+    <textarea id="reject-reason" [ngModel]="rejectReason()" (ngModelChange)="rejectReason.set($event)" rows="5" placeholder="Opisz dlaczego odrzucasz..."></textarea>
+    @if (rejectError()) { <div class="error small">{{ rejectError() }}</div> }
+    <div class="actions">
+      <button class="btn" (click)="cancelReject()">Anuluj</button>
+      <button class="btn btn-danger" (click)="confirmReject()">Odrzuć</button>
+    </div>
+  </div>
+}

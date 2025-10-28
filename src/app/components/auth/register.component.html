@@ -5,6 +5,18 @@
       <p>Zarejestruj się i utwórz firmę</p>
     </div>
 
+    @if (selectedPlan()) {
+      <div class="plan-banner">
+        @if (selectedPlan() === 'trial') { 
+          <strong>Plan testowy:</strong> 14 dni darmowego korzystania bez karty.
+        } @else if (selectedPlan() === 'pro') {
+          <strong>Plan Pro:</strong> Pełen dostęp i wsparcie priorytetowe.
+        } @else {
+          <strong>Wybrany plan:</strong> {{ selectedPlan() }}
+        }
+      </div>
+    }
+
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
       @if (error()) {
         <div class="error-message">

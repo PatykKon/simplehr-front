@@ -126,7 +126,7 @@ import { AddEmployeeRequest, LeaveType, Role } from '../../models/employee.model
                   <input 
                     type="number" 
                     min="0" 
-                    [value]="getLeaveBalance(leaveType)?.allocatedDays || 0"
+                    [value]="getLeaveBalance(leaveType).allocatedDays || 0"
                     (input)="updateLeaveBalance(leaveType, 'allocatedDays', $event)"
                     class="form-control small">
                 </div>
@@ -135,7 +135,7 @@ import { AddEmployeeRequest, LeaveType, Role } from '../../models/employee.model
                   <input 
                     type="number" 
                     min="0" 
-                    [value]="getLeaveBalance(leaveType)?.usedDays || 0"
+                    [value]="getLeaveBalance(leaveType).usedDays || 0"
                     (input)="updateLeaveBalance(leaveType, 'usedDays', $event)"
                     class="form-control small">
                 </div>

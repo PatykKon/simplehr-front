@@ -1,0 +1,104 @@
+<div class="container" *ngIf="!loading(); else loadingTpl">
+  <ng-container *ngIf="day() as d; else errorTpl">
+    <div class="header">
+      <button class="back" (click)="router.navigate(['/work-time'])">← Wróć</button>
+      <h2>Dzień: {{ d.workDate }}</h2>
+      <span class="pill" *ngIf="d.leaveDay">Urlop {{ d.leaveType || '' }}</span>
+      <span class="pill pill-edit" *ngIf="d.editable">Edytowalne</span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Plan</h3>
+        <div *ngIf="d.scheduledStartTime && d.scheduledEndTime; else noneTpl">{{ d.scheduledStartTime }}–{{ d.scheduledEndTime }}</div>
+      </div>
+
+      <div class="card">
+        <h3>Punch</h3>
+        <div class="row"><strong>IN:</strong> {{ d.punchInTime || '—' }}</div>
+        <div class="row"><strong>OUT:</strong> {{ d.punchOutTime || '—' }}</div>
+        <div class="hint" *ngIf="d.roundedHours != null && config()?.autoRoundEnabled">
+          Efektywne godziny mogą być zaokrąglone do progu {{ config()?.roundingMinutes || 15 }} min (w górę).
+        </div>
+        <div class="actions" *ngIf="workTimeType() === 'PUNCH_IN_OUT'">
+          <div>
+            <label>Godzina IN
+              <input type="time" [(ngModel)]="timeIn" />
+            </label>
+            <button [disabled]="!canPunchIn() || actionLoading()" (click)="punchIn()">Punch In</button>
+          </div>
+          <div>
+            <label>Godzina OUT
+              <input type="time" [(ngModel)]="timeOut" />
+            </label>
+            <button [disabled]="!canPunchOut() || actionLoading()" (click)="punchOut()">Punch Out</button>
+          </div>
+        </div>
+        <div class="muted" *ngIf="workTimeType() !== 'PUNCH_IN_OUT'">Punch wyłączony w tej konfiguracji</div>
+      </div>
+
+      <div class="card">
+        <h3>Ręczny wpis</h3>
+        <form (ngSubmit)="saveManual()" *ngIf="workTimeType() === 'MANUAL_ENTRY'; else manualDisabledTpl" class="manual-form">
+          <label>Godziny standardowe
+            <input type="number" [(ngModel)]="manual.standardHours" name="standardHours" step="0.25" min="0" max="24" />
+          </label>
+          <label>Nadgodziny
+            <input type="number" [(ngModel)]="manual.overtimeHours" name="overtimeHours" step="0.25" min="0" max="24" />
+          </label>
+          <label>Notatka
+            <input type="text" [(ngModel)]="manual.note" name="note" />
+          </label>
+          <button type="submit" [disabled]="!canManualEdit() || actionLoading()">Zapisz</button>
+        </form>
+        <ng-template #manualDisabledTpl>
+          <div class="muted">Wpis ręczny wyłączony w tej konfiguracji</div>
+        </ng-template>
+      </div>
+
+      <div class="card">
+        <h3>Podsumowanie</h3>
+        <ul>
+          <li>Manual: {{ d.standardHours || 0 | number:'1.2-2' }} + {{ d.overtimeHours || 0 | number:'1.2-2' }} h</li>
+          <li>Rounded: <strong>{{ d.roundedHours != null ? (d.roundedHours | number:'1.2-2') + ' h' : '—' }}</strong></li>
+          <li>Uwagi: {{ d.note || '—' }}</li>
+        </ul>
+      </div>
+
+      <div class="card" *ngIf="canCreateAdjustment()">
+        <h3>Korekta czasu pracy</h3>
+        <form (ngSubmit)="submitAdjustment()" class="adj-form">
+          <label>Typ
+            <select [(ngModel)]="adjustmentType" name="adjustmentType">
+              <option value="OVERTIME">Nadgodziny</option>
+              <option value="UNDERTIME">Niedogodziny</option>
+            </select>
+          </label>
+          <label>Godziny
+            <input type="number" [(ngModel)]="adjustmentHours" name="adjustmentHours" step="0.25" min="0.25" />
+          </label>
+          <label>Tytuł
+            <input type="text" [(ngModel)]="adjustmentTitle" name="adjustmentTitle" />
+          </label>
+          <label>Powód (wymagany dla Niedogodzin)
+            <input type="text" [(ngModel)]="adjustmentReason" name="adjustmentReason" />
+          </label>
+          <button type="submit" [disabled]="adjLoading()">Zgłoś korektę</button>
+        </form>
+        <div class="muted">Akceptanci: z konfiguracji firmy (HR/Manager/Admin).</div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="container loading">Ładowanie...</div>
+</ng-template>
+
+<ng-template #errorTpl>
+  <div class="container error">{{ error() }}</div>
+</ng-template>
+
+<ng-template #noneTpl>
+  <span class="muted">—</span>
+</ng-template>

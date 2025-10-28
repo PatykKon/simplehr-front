@@ -52,6 +52,8 @@ export class LeaveProposalDetailsComponent implements OnInit {
   currentDate = new Date();
   calendarDays: CalendarDay[] = [];
   weekdays = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nie'];
+  // View toggle for right panel
+  viewMode: 'CALENDAR' | 'TABLE' = 'CALENDAR';
 
   // Forms
   approvalForm: FormGroup;
@@ -257,6 +259,24 @@ export class LeaveProposalDetailsComponent implements OnInit {
       month: 'long',
       year: 'numeric'
     });
+  }
+
+  // Helpers for TABLE view
+  formatDayLabel(d: Date): string {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}`;
+  }
+  weekdayLabel(d: Date): string {
+    // 0=Sun..6=Sat -> map to PL short names with Mon first
+    const map = ['Nie', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
+    const idx = d.getDay();
+    return map[idx] || '';
+  }
+
+  // Days to render in TABLE view: only current month, preserving order
+  tableDays(): CalendarDay[] {
+    return (this.calendarDays || []).filter(d => d.isCurrentMonth);
   }
 
   // Approval methods

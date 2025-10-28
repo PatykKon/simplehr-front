@@ -216,57 +216,106 @@
     <div class="right-panel">
       <div class="card calendar-card">
         <div class="card-header">
-          <h2>📅 Kalendarz urlopowy</h2>
-          <div class="calendar-nav">
-            <button class="btn-nav" (click)="previousMonth()">‹</button>
-            <span class="month-year">{{ getMonthYearDisplay() }}</span>
-            <button class="btn-nav" (click)="nextMonth()">›</button>
+          <h2>📅 Podgląd urlopów</h2>
+          <div class="calendar-nav" style="display:flex; align-items:center; gap:8px; width:100%;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="month-year">{{ getMonthYearDisplay() }}</span>
+              <ng-container *ngIf="viewMode==='CALENDAR'">
+                <button class="btn-nav" (click)="previousMonth()" title="Poprzedni miesiąc">‹</button>
+                <button class="btn-nav" (click)="nextMonth()" title="Następny miesiąc">›</button>
+              </ng-container>
+            </div>
+            <div class="spacer"></div>
+            <div class="view-toggle" style="display:flex; gap:4px;">
+              <button class="btn" [class.btn-primary]="viewMode==='CALENDAR'" (click)="viewMode='CALENDAR'">Pokaż w kalendarzu</button>
+              <button class="btn" [class.btn-primary]="viewMode==='TABLE'" (click)="viewMode='TABLE'">Pokaż w tabeli</button>
+            </div>
           </div>
         </div>
 
-        <div class="calendar-container">
-          <div class="calendar-weekdays">
-            <div class="weekday" *ngFor="let day of weekdays">{{ day }}</div>
-          </div>
+        <!-- CALENDAR VIEW -->
+        <ng-container *ngIf="viewMode==='CALENDAR'; else tableView">
+          <div class="calendar-container">
+            <div class="calendar-weekdays">
+              <div class="weekday" *ngFor="let day of weekdays">{{ day }}</div>
+            </div>
 
-          <div class="calendar-days">
-            <div
-              class="calendar-day"
-              *ngFor="let day of calendarDays"
-              [class.other-month]="!day.isCurrentMonth"
-              [class.today]="day.isToday"
-              [class.in-range]="day.isInRange"
-              [class.start-date]="day.isStartDate"
-              [class.end-date]="day.isEndDate"
-              [class.has-leaves]="day.hasLeaves"
-            >
-              <span class="day-number">{{ day.day }}</span>
+            <div class="calendar-days">
+              <div
+                class="calendar-day"
+                *ngFor="let day of calendarDays"
+                [class.other-month]="!day.isCurrentMonth"
+                [class.today]="day.isToday"
+                [class.in-range]="day.isInRange"
+                [class.start-date]="day.isStartDate"
+                [class.end-date]="day.isEndDate"
+                [class.has-leaves]="day.hasLeaves"
+              >
+                <span class="day-number">{{ day.day }}</span>
 
-              <div class="day-employees" *ngIf="day.employeesOnLeave.length > 0">
-                <div class="employee-tooltip">
-                  <span class="employee-count">{{ day.employeesOnLeave.length }}</span>
-                  <div class="tooltip-content">
-                    <div class="tooltip-employee" *ngFor="let emp of day.employeesOnLeave">
-                      <strong>{{ emp.userFirstName }} {{ emp.userLastName }}</strong>
-                      <span class="emp-leave-type">{{ getLeaveTypeLabel(emp.leaveType) }}</span>
+                <div class="day-employees" *ngIf="day.employeesOnLeave.length > 0">
+                  <div class="employee-tooltip">
+                    <span class="employee-count">{{ day.employeesOnLeave.length }}</span>
+                    <div class="tooltip-content">
+                      <div class="tooltip-employee" *ngFor="let emp of day.employeesOnLeave">
+                        <strong>{{ emp.userFirstName }} {{ emp.userLastName }}</strong>
+                        <span class="emp-leave-type">{{ getLeaveTypeLabel(emp.leaveType) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="calendar-legend">
-          <div class="legend-item">
-            <div class="legend-color current-proposal"></div>
-            <span>Obecny wniosek</span>
+          <div class="calendar-legend">
+            <div class="legend-item">
+              <div class="legend-color current-proposal"></div>
+              <span>Obecny wniosek</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color has-leaves"></div>
+              <span>Inne urlopy</span>
+            </div>
           </div>
-          <div class="legend-item">
-            <div class="legend-color has-leaves"></div>
-            <span>Inne urlopy</span>
+        </ng-container>
+
+        <!-- TABLE VIEW -->
+        <ng-template #tableView>
+          <div class="table-container">
+            <table class="leave-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Dzień</th>
+                  <th>Twój wniosek</th>
+                  <th>Inne urlopy</th>
+                  <th>Lista</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let day of tableDays()">
+                  <td [class.other-month]="!day.isCurrentMonth">{{ formatDayLabel(day.date) }}</td>
+                  <td>{{ weekdayLabel(day.date) }}</td>
+                  <td>
+                    <span *ngIf="day.isInRange" class="badge badge-proposal">✓</span>
+                  </td>
+                  <td>
+                    <span *ngIf="day.employeesOnLeave.length > 0" class="badge">{{ day.employeesOnLeave.length }}</span>
+                  </td>
+                  <td>
+                    <ng-container *ngIf="day.employeesOnLeave.length > 0; else dash">
+                      <span class="chip" *ngFor="let emp of day.employeesOnLeave">
+                        {{ emp.userFirstName }} {{ emp.userLastName }} ({{ getLeaveTypeLabel(emp.leaveType) }})
+                      </span>
+                    </ng-container>
+                    <ng-template #dash>—</ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+        </ng-template>
       </div>
     </div>
   </div>

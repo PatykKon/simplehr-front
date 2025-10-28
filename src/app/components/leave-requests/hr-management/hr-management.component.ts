@@ -40,6 +40,13 @@ interface ProposalStats {
   ],
   templateUrl: './hr-management.component.html',
   styles: [`
+    /* Layout container */
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
     /* Compact statistics grid */
     .stats-grid {
       display: grid;
@@ -51,32 +58,32 @@ interface ProposalStats {
     .stat-card {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px;
+      gap: 10px;
+      padding: 12px 14px;
       background: white;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
     }
 
     .stat-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
     }
 
     .stat-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
       flex-shrink: 0;
     }
 
     .stat-icon i {
-      font-size: 18px;
+      font-size: 16px;
       color: white;
     }
 
@@ -102,7 +109,7 @@ interface ProposalStats {
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 700;
       color: #1a1a1a;
       line-height: 1.2;
@@ -110,7 +117,7 @@ interface ProposalStats {
     }
 
     .stat-label {
-      font-size: 13px;
+      font-size: 12px;
       color: #6b7280;
       font-weight: 500;
       line-height: 1.3;
@@ -118,11 +125,12 @@ interface ProposalStats {
 
     /* Page header */
     .page-header {
-      margin-bottom: 24px;
-      padding: 20px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
       background: white;
       border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     .header-content {
@@ -130,7 +138,7 @@ interface ProposalStats {
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 15px;
+      gap: 10px;
     }
 
     .page-title {
@@ -138,19 +146,19 @@ interface ProposalStats {
       align-items: center;
       gap: 10px;
       margin: 0;
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 600;
       color: #1a1a1a;
     }
 
     .page-title i {
-      font-size: 24px;
+      font-size: 18px;
       color: #3b82f6;
     }
 
     .header-actions {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
 
     /* Buttons */
@@ -158,10 +166,10 @@ interface ProposalStats {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 16px;
+      padding: 8px 12px;
       border: none;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       text-decoration: none;
       cursor: pointer;
@@ -192,15 +200,15 @@ interface ProposalStats {
     }
 
     .btn i {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     /* Alert */
     .alert {
-      padding: 12px 16px;
+      padding: 10px 12px;
       border-radius: 6px;
       margin-bottom: 20px;
-      font-size: 14px;
+      font-size: 13px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -287,7 +295,7 @@ interface ProposalStats {
       background: white;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       overflow: hidden;
       transition: all 0.3s ease;
       max-height: 0;
@@ -295,20 +303,20 @@ interface ProposalStats {
     }
 
     .filters-panel.show {
-      max-height: 500px;
+      max-height: 420px;
       opacity: 1;
-      padding: 20px;
+      padding: 12px;
     }
 
     .filters-form {
       display: grid;
-      gap: 20px;
+      gap: 12px;
     }
 
     .filter-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      gap: 12px;
       align-items: end;
     }
 
@@ -325,10 +333,10 @@ interface ProposalStats {
     }
 
     .form-control {
-      padding: 8px 12px;
+      padding: 6px 10px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       transition: border-color 0.2s ease;
     }
 
@@ -348,7 +356,7 @@ interface ProposalStats {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: 10px 12px;
       background: #fef3c7;
       border: 1px solid #f59e0b;
       border-radius: 6px;
@@ -402,13 +410,13 @@ interface ProposalStats {
     }
 
     .table-header {
-      padding: 16px 20px;
+      padding: 12px 16px;
       background: #f9fafb;
       border-bottom: 1px solid #e5e7eb;
     }
 
     .table-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: #1a1a1a;
     }
@@ -424,19 +432,22 @@ interface ProposalStats {
 
     .proposals-table th,
     .proposals-table td {
-      padding: 12px 16px;
+      padding: 10px 12px;
       text-align: left;
       border-bottom: 1px solid #f3f4f6;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .proposals-table th {
       background: #f9fafb;
       font-weight: 600;
       color: #374151;
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     .proposals-table th.sortable {
@@ -460,26 +471,34 @@ interface ProposalStats {
     }
 
     .checkbox-col {
-      width: 40px;
+      width: 36px;
     }
 
     .actions-col {
-      width: 140px;
+      width: 120px;
     }
 
     .employee-cell {
       min-width: 160px;
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .employee-name {
       font-weight: 500;
       color: #1a1a1a;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .employee-username {
-      font-size: 12px;
+      font-size: 11px;
       color: #6b7280;
       margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .leave-type-badge {
@@ -518,12 +537,12 @@ interface ProposalStats {
     }
 
     .date-from, .date-to {
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .date-separator {
       color: #6b7280;
-      font-size: 12px;
+      font-size: 11px;
       text-align: center;
     }
 
@@ -570,7 +589,7 @@ interface ProposalStats {
     }
 
     .date {
-      font-size: 13px;
+      font-size: 12px;
       color: #1a1a1a;
     }
 
@@ -593,7 +612,7 @@ interface ProposalStats {
     .loading-row td,
     .empty-row td {
       text-align: center;
-      padding: 40px 20px;
+      padding: 32px 16px;
     }
 
     .loading-spinner {
@@ -609,12 +628,16 @@ interface ProposalStats {
     }
 
     .empty-state i {
-      font-size: 32px;
-      margin-bottom: 8px;
+      font-size: 24px;
+      margin-bottom: 6px;
       display: block;
     }
 
     /* Responsive table */
+    @media (max-width: 900px) {
+      .btn-label { display: none; }
+    }
+
     @media (max-width: 768px) {
       .filter-row {
         grid-template-columns: 1fr;

@@ -1,0 +1,111 @@
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1>SimpleHR — nowoczesny system HR dla Twojej firmy</h1>
+      <p class="subtitle">Zarządzaj pracownikami, harmonogramami i urlopami w jednym, prostym narzędziu.</p>
+      <div class="cta-group">
+        <button class="btn btn-primary" (click)="goToRegister('trial')">Załóż konto testowe — 14 dni</button>
+        <button class="btn btn-secondary" (click)="goToRegister()">Zarejestruj się</button>
+        <button class="btn btn-link" (click)="goToLogin()">Masz już konto? Zaloguj się</button>
+      </div>
+    </div>
+    <div class="hero-illustration" aria-hidden="true">📅 👥 🏖️</div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container grid">
+    <div class="feature">
+      <div class="icon">📅</div>
+      <h3>Harmonogram pracy</h3>
+      <p>Twórz i udostępniaj grafiki pracy. Zarządzaj zmianami, przerwami i nadgodzinami.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">🏖️</div>
+      <h3>Urlopy i wnioski</h3>
+      <p>Składaj wnioski, konfiguruj pule urlopowe i akceptuj prośby zespołu.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">👤</div>
+      <h3>Baza pracowników</h3>
+      <p>Dodawaj pracowników, importuj dane z CSV, przeglądaj profile i uprawnienia.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">🔐</div>
+      <h3>Role i dostępy</h3>
+      <p>Kontroluj dostęp dzięki rolom: Admin, HR, Manager i Pracownik.</p>
+    </div>
+  </div>
+</section>
+
+<section class="leave">
+  <div class="container">
+    <h2>Szybki dostęp do urlopów</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">Złóż wniosek</div>
+        <p class="note">Wymaga zalogowania</p>
+        <button class="btn btn-primary" [routerLink]="['/leave-requests/create']">Utwórz wniosek urlopowy</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Moje wnioski</div>
+        <p class="note">Podgląd statusów i historii</p>
+        <button class="btn btn-secondary" [routerLink]="['/leave-requests']">Przejdź do listy</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Centrum urlopów</div>
+        <p class="note">Nawigacja do wszystkich funkcji</p>
+        <button class="btn btn-secondary" [routerLink]="['/leave']">Otwórz centrum</button>
+      </div>
+    </div>
+  </div>
+  
+</section>
+
+<section class="plans">
+  <div class="container">
+    <h2>Wybierz plan dopasowany do potrzeb</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">Starter</div>
+        <div class="price">0 zł</div>
+        <div class="note">14 dni testów</div>
+        <ul>
+          <li>Do 10 pracowników</li>
+          <li>Harmonogramy i wnioski urlopowe</li>
+          <li>Podstawowe raporty</li>
+        </ul>
+        <button class="btn btn-primary" (click)="goToRegister('trial')">Rozpocznij test</button>
+      </div>
+      <div class="card popular">
+        <div class="badge">Najczęściej wybierany</div>
+        <div class="card-header">Pro</div>
+        <div class="price">49 zł/mies.</div>
+        <ul>
+          <li>Nielimitowana liczba pracowników</li>
+          <li>Konfiguracja urlopów i importy</li>
+          <li>Priorytetowe wsparcie</li>
+        </ul>
+        <button class="btn btn-primary" (click)="goToRegister('pro')">Wybierz Pro</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Enterprise</div>
+        <div class="price">Indywidualnie</div>
+        <ul>
+          <li>Zaawansowane uprawnienia</li>
+          <li>Onboarding i wsparcie dedykowane</li>
+          <li>Integracje na zamówienie</li>
+        </ul>
+        <a class="btn btn-secondary" href="mailto:contact@simplehr.example">Skontaktuj się</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final">
+  <div class="container">
+    <h2>Gotowy, by usprawnić HR?</h2>
+    <p>Załóż konto testowe, a w 5 minut przygotujesz pierwszy grafik i zaprosisz pracowników.</p>
+    <button class="btn btn-primary" (click)="goToRegister('trial')">Załóż konto testowe</button>
+  </div>
+</section>

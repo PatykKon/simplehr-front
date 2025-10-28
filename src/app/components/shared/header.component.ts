@@ -63,6 +63,18 @@ import { User } from '../../models/auth.models';
               📅 Harmonogram
             </a>
 
+            <a routerLink="/work-time-records" 
+               routerLinkActive="active" 
+               class="nav-link">
+              🕒 Ewidencja czasu pracy
+            </a>
+
+            <a routerLink="/work-time" 
+               routerLinkActive="active" 
+               class="nav-link">
+              📆 Ewidencja (miesiąc)
+            </a>
+
             <!-- Admin/HR Navigation -->
             <div class="nav-dropdown" *ngIf="canAccessAdmin()">
               <button class="nav-link dropdown-toggle" 
@@ -127,6 +139,16 @@ import { User } from '../../models/auth.models';
              class="mobile-nav-link" 
              (click)="closeMobileMenu()">
             📅 Harmonogram
+          </a>
+          <a routerLink="/work-time-records" 
+             class="mobile-nav-link" 
+             (click)="closeMobileMenu()">
+            🕒 Ewidencja czasu pracy
+          </a>
+          <a routerLink="/work-time" 
+             class="mobile-nav-link" 
+             (click)="closeMobileMenu()">
+            📆 Ewidencja (miesiąc)
           </a>
           <a routerLink="/leave-requests/create" 
              class="mobile-nav-link mobile-nav-cta" 
@@ -233,7 +255,7 @@ export class HeaderComponent implements OnInit {
 
   getUserRoleLabel(): string {
     if (!this.currentUser?.roles) return '';
-    
+
     const roleLabels: { [key: string]: string } = {
       'ADMIN': 'Administrator',
       'HR': 'HR',
@@ -242,15 +264,14 @@ export class HeaderComponent implements OnInit {
     };
 
     // Pokaż najwyższą rolę
-    const roles = this.currentUser.roles;
-    if (roles.includes('ADMIN')) return roleLabels['ADMIN'];
-    if (roles.includes('HR')) return roleLabels['HR'];
-    if (roles.includes('MANAGER')) return roleLabels['MANAGER'];
+    if (this.authService.hasAnyRole(['ROLE_ADMIN'])) return roleLabels['ADMIN'];
+    if (this.authService.hasAnyRole(['ROLE_HR'])) return roleLabels['HR'];
+    if (this.authService.hasAnyRole(['ROLE_MANAGER'])) return roleLabels['MANAGER'];
     return roleLabels['USER'];
   }
 
   canAccessAdmin(): boolean {
-    return this.currentUser?.roles?.some((role: string) => ['ADMIN', 'HR'].includes(role)) || false;
+    return this.authService.hasAnyRole(['ROLE_ADMIN', 'ROLE_HR']);
   }
 
   isAdminRoute(): boolean {

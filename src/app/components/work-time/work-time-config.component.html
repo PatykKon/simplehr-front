@@ -1,0 +1,259 @@
+<div class="wtc-container" *ngIf="!loading(); else loadingTpl">
+  <div class="wtc-layout">
+    <aside class="wtc-sidebar">
+      <div class="wtc-title">Ewidencja czasu</div>
+      <nav class="wtc-nav">
+        <a routerLink="/work-time" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span class="icon">📅</span>
+          Widok miesiąca
+        </a>
+        <a routerLink="/work-time/config" routerLinkActive="active">
+          <span class="icon">⚙️</span>
+          Konfiguracja
+        </a>
+        <a routerLink="/work-time-records" routerLinkActive="active">
+          <span class="icon">🗂️</span>
+          Moja ewidencja
+        </a>
+        <a routerLink="/leave-requests" routerLinkActive="active">
+          <span class="icon">📝</span>
+          Wnioski
+        </a>
+        <a *ngIf="auth.hasAnyRole(['ROLE_ADMIN','ROLE_HR'])" routerLink="/admin/work-time" routerLinkActive="active">
+          <span class="icon">🗓️</span>
+          Przelicz dni
+        </a>
+      </nav>
+
+      <div class="wtc-sidebar-card" *ngIf="config() as c">
+        <div class="label">Aktywny tryb</div>
+        <div class="mode-badge" [class.punch]="isPunch()" [class.manual]="isManual()" [class.schedule]="isSchedule()">
+          {{ modeLabel() }}
+        </div>
+      </div>
+    </aside>
+
+    <main class="wtc-main">
+      <div class="wtc-header">
+        <h2>⚙️ Konfiguracja ewidencji czasu pracy</h2>
+      </div>
+
+      <!-- Active config details if present -->
+      <section class="card" *ngIf="config()">
+        <div class="row">
+          <div>
+            <div class="label">Aktywna konfiguracja</div>
+            <div class="name">{{ config()?.name || '—' }}</div>
+            <div class="desc" *ngIf="config()?.description">{{ config()?.description }}</div>
+          </div>
+          <!-- Removed duplicate Tryb display to avoid repetition (mode shown in sidebar) -->
+        </div>
+      </section>
+
+      <!-- Warning if no active config -->
+      <section class="card warn" *ngIf="!config()">
+        <h3>Brak aktywnej konfiguracji</h3>
+        <p>Nie znaleziono WorkTimeConfig z flagą <code>active=true</code>. Jako uprawniony użytkownik możesz utworzyć nową konfigurację poniżej.</p>
+      </section>
+
+    <section class="card" *ngIf="auth.hasAnyRole(['ROLE_ADMIN','ROLE_HR','ROLE_MANAGER'])">
+      <h3>Nowa konfiguracja</h3>
+      <p class="desc">Utwórz konfigurację zgodną z API. Zaznaczenie „Aktywna” może spowodować konflikt, jeśli istnieje już aktywna konfiguracja (wtedy backend zwróci 409).</p>
+      <form (ngSubmit)="submitNewConfig()" #cfgForm="ngForm">
+        <div class="form-grid">
+          <label>
+            Nazwa
+            <input type="text" name="name" [ngModel]="newConfig().name" (ngModelChange)="updateNewConfig({name: $event})" required />
+          </label>
+
+          <label>
+            Opis
+            <input type="text" name="description" [ngModel]="newConfig().description" (ngModelChange)="updateNewConfig({description: $event})" />
+          </label>
+
+          <label>
+            Tryb
+            <select name="workTimeType" [ngModel]="newConfig().workTimeType" (ngModelChange)="onTypeChange($event)" required>
+              <option value="SCHEDULE_WORK">SCHEDULE_WORK</option>
+              <option value="PUNCH_IN_OUT">PUNCH_IN_OUT</option>
+              <option value="MANUAL_ENTRY">MANUAL_ENTRY</option>
+            </select>
+          </label>
+
+          <label class="checkbox">
+            <input type="checkbox" name="active" [ngModel]="newConfig().active" (ngModelChange)="updateNewConfig({active: $event})" /> Aktywna
+          </label>
+
+          <label class="checkbox">
+            <input type="checkbox" name="autoMarkLeaveDays" [ngModel]="newConfig().autoMarkLeaveDays" (ngModelChange)="updateNewConfig({autoMarkLeaveDays: $event})" /> Auto‑oznaczanie dni urlopu
+          </label>
+
+          <label class="checkbox">
+            <input type="checkbox" name="allowCorrections" [ngModel]="newConfig().allowCorrections" (ngModelChange)="updateNewConfig({allowCorrections: $event})" /> Pozwól na korekty
+          </label>
+
+          <label>
+            Limit dni na korekty
+            <input type="number" name="correctionDaysLimit" min="0" max="365" [ngModel]="newConfig().correctionDaysLimit" (ngModelChange)="updateNewConfig({correctionDaysLimit: $event})" />
+          </label>
+
+          <div class="approvers">
+            <label>
+              Akceptujący
+              <input list="approverList" name="approverPick" [ngModel]="approverPick()" (ngModelChange)="onApproverPickChange($event)" placeholder="Wybierz osobę z listy" />
+              <datalist id="approverList">
+                <option *ngFor="let u of eligibleApprovers()" [value]="u.id">{{ approverLabel(u) }}</option>
+              </datalist>
+            </label>
+            <div class="chips" *ngIf="selectedApproverIds().length > 0">
+              <span class="chip" *ngFor="let id of selectedApproverIds()">
+                {{ approverLabelById(id) }}
+                <button type="button" class="chip-x" (click)="removeApprover(id)" aria-label="Usuń">×</button>
+              </span>
+            </div>
+          </div>
+
+          <ng-container *ngIf="newConfig().workTimeType === 'PUNCH_IN_OUT'">
+            <label class="checkbox">
+              <input type="checkbox" name="autoRoundEnabled" [ngModel]="newConfig().autoRoundEnabled" (ngModelChange)="updateNewConfig({autoRoundEnabled: $event})" /> Zaokrąglanie włączone
+            </label>
+            <label>
+              Minuty zaokrąglenia
+              <input type="number" name="roundingMinutes" min="1" max="60" [ngModel]="newConfig().roundingMinutes" (ngModelChange)="updateNewConfig({roundingMinutes: $event})" />
+            </label>
+          </ng-container>
+
+          <ng-container *ngIf="newConfig().workTimeType === 'MANUAL_ENTRY'">
+            <label>
+              Maks. godziny dziennie
+              <input type="number" name="maxDailyHours" min="0" max="24" step="0.25" [ngModel]="newConfig().maxDailyHours" (ngModelChange)="updateNewConfig({maxDailyHours: $event})" />
+            </label>
+            <label>
+              Maks. nadgodziny dziennie
+              <input type="number" name="maxDailyOvertimeHours" min="0" max="24" step="0.25" [ngModel]="newConfig().maxDailyOvertimeHours" (ngModelChange)="updateNewConfig({maxDailyOvertimeHours: $event})" />
+            </label>
+          </ng-container>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn" [disabled]="creating() || !cfgForm.form.valid">Zapisz konfigurację</button>
+        </div>
+      </form>
+    </section>
+
+  <!-- Mode details if config available -->
+    <section class="grid" *ngIf="config()">
+      <div class="card">
+        <h3>Reguły ogólne</h3>
+        <ul class="props">
+          <li><span>Auto‑oznaczanie dni urlopu:</span> <b>{{ config()?.autoMarkLeaveDays ? 'TAK' : 'NIE' }}</b></li>
+          <li><span>Pozwól na korekty:</span> <b>{{ config()?.allowCorrections ? 'TAK' : 'NIE' }}</b></li>
+          <li><span>Limit dni na korekty:</span> <b>{{ config()?.correctionDaysLimit ?? '—' }}</b></li>
+          <li><span>Akceptujący (IDs):</span> <b>{{ (config()?.approverUserIds || []).join(', ') || '—' }}</b></li>
+        </ul>
+      </div>
+
+      <div class="card" *ngIf="isPunch()">
+        <h3>Tryb PUNCH</h3>
+        <ul class="props">
+          <li><span>Zaokrąglanie włączone:</span> <b>{{ config()?.autoRoundEnabled ? 'TAK' : 'NIE' }}</b></li>
+          <li><span>Minuty zaokrąglenia:</span> <b>{{ config()?.roundingMinutes ?? 15 }}</b></li>
+          <li class="hint">W UI pokazuj roundedHours jeśli dostępne i dodaj tooltip „zaokrąglono do X min”.</li>
+        </ul>
+      </div>
+
+      <div class="card" *ngIf="isManual()">
+        <h3>Tryb MANUAL</h3>
+        <ul class="props">
+          <li><span>Maks. godziny dziennie:</span> <b>{{ config()?.maxDailyHours ?? '—' }}</b></li>
+          <li><span>Maks. nadgodziny dziennie:</span> <b>{{ config()?.maxDailyOvertimeHours ?? '—' }}</b></li>
+          <li class="hint">Blokuj przyszłe daty i waliduj limity po stronie FE.</li>
+        </ul>
+      </div>
+
+      <div class="card" *ngIf="isSchedule()">
+        <h3>Tryb SCHEDULE_WORK</h3>
+        <p>Widok jest tylko‑do‑odczytu (po publikacji grafiku). Po ponownej publikacji odśwież miesiąc/dzień.</p>
+      </div>
+    </section>
+
+    <!-- Removed duplicated create form to avoid repetition -->
+
+    <!-- List all configs (bez aktywacji z tej strony) -->
+    <section class="card" *ngIf="auth.hasAnyRole(['ADMIN','HR','MANAGER'])">
+      <div class="examples-header">
+        <h3>Dostępne konfiguracje</h3>
+        <button class="btn" type="button" (click)="refreshConfigs()">Odśwież</button>
+      </div>
+      <div *ngIf="configsLoading()" class="loading">Ładowanie…</div>
+      <div *ngIf="!configsLoading() && configs().length === 0" class="muted">Brak konfiguracji</div>
+      <ul class="props" *ngIf="configs().length > 0">
+        <li *ngFor="let c of configs()">
+          <span>{{ c.name }} — {{ c.workTimeType }}</span>
+          <span><span class="mode-badge" *ngIf="c.active">Aktywna</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Examples for FE -->
+    <section class="card examples" *ngIf="auth.hasAnyRole(['ADMIN','HR','MANAGER'])">
+      <div class="examples-header">
+        <h3>Przykłady API i payloady</h3>
+        <button class="btn" (click)="showExamples.set(!showExamples())">{{ showExamples() ? 'Ukryj' : 'Pokaż' }}</button>
+      </div>
+      <div *ngIf="showExamples()">
+          <div ngNonBindable>
+        <h4>Detekcja trybu</h4>
+          <pre ngNonBindable>// GET /api/work-time-configs → wybierz active=true
+          [
+            &#123;
+              "id": 1,
+              "name": "Domyślna",
+              "workTimeType": "PUNCH_IN_OUT",
+              "active": true,
+              "autoRoundEnabled": true,
+              "roundingMinutes": 15,
+              "allowCorrections": true,
+              "correctionDaysLimit": 7
+            &#125;
+          ]</pre>
+
+        <h4>Widok miesiąca</h4>
+          <pre ngNonBindable>// GET /api/work-time/days?period=2025-10
+          [
+            &#123; "workDate":"2025-10-01", "scheduledStartTime":"09:00", "scheduledEndTime":"17:00", "editable": false, "leaveDay": false &#125;,
+            &#123; "workDate":"2025-10-02", "punchInTime":"09:02", "punchOutTime":"17:05", "roundedHours": 8.0, "editable": true, "leaveDay": false &#125;,
+            &#123; "workDate":"2025-10-03", "standardHours": 8.0, "overtimeHours": 1.0, "editable": true, "leaveDay": false &#125;
+          ]</pre>
+
+        <h4>Punch</h4>
+          <pre ngNonBindable>// POST /api/work-time/punch/in
+          &#123; "workDate": "2025-10-28" &#125;
+// POST /api/work-time/punch/out
+          &#123; "workDate": "2025-10-28" &#125;</pre>
+
+        <h4>Manual Day</h4>
+          <pre ngNonBindable>// PUT /api/work-time/manual/day
+          &#123; "workDate":"2025-10-28", "standardHours":8.0, "overtimeHours":1.0, "note":"Projekt X" &#125;</pre>
+
+        <h4>Model błędu</h4>
+          <pre ngNonBindable>&#123;
+            "timestamp":"2025-10-28T10:15:30.123Z",
+            "code":"BAD_REQUEST",
+            "message":"Przekroczono dozwolone godziny dzienne",
+            "path":"/api/work-time/manual/day",
+            "correlationId":"a1b2c3...",
+            "details": &#123; "standardHours": "max 8", "overtimeHours": "max 2" &#125;
+          &#125;</pre>
+          </div>
+      </div>
+    </section>
+    </main>
+  </div>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="loading">Ładowanie konfiguracji…</div>
+  </ng-template>
+
+<ng-template #emptyCfg></ng-template>

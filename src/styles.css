@@ -22,3 +22,42 @@ button {
 input, textarea, select {
   font-family: inherit;
 }
+
+/* Utility classes */
+.btn { padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; background: #fff; cursor: pointer; }
+.btn:hover { background: #f6f8fa; }
+.btn-primary { background: #0b5ed7; border-color: #0b5ed7; color: #fff; }
+.btn-primary:hover { background: #0a53be; }
+.btn-outline { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+.btn-success { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn-sm { padding: 6px 10px; font-size: 0.9rem; }
+.form-control { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; }
+.form-control:focus { outline: none; border-color: #0b5ed7; box-shadow: 0 0 0 3px rgba(11, 94, 215, 0.15); }
+
+/* FullCalendar tweaks */
+.fc { font-size: 0.98rem; }
+.fc .fc-toolbar-title { font-size: 1.3rem; }
+.fc .fc-button { border-radius: 6px; padding: 6px 12px; }
+.fc .fc-button-primary { background: #0b5ed7; border-color: #0b5ed7; }
+.fc .fc-button-primary:not(:disabled):hover { background: #0a53be; border-color: #0a53be; }
+.fc .fc-daygrid-event, .fc .fc-timegrid-event { border-radius: 8px; }
+
+/* Make calendar event boxes more readable */
+.fc .fc-daygrid-day-frame { min-height: 110px; padding: 6px; }
+.fc .fc-daygrid-day-number { font-size: 1.0rem; font-weight: 600; }
+.fc .fc-daygrid-event { padding: 2px 6px; font-size: 0.86rem; line-height: 1.2; }
+.fc .fc-daygrid-block-event .fc-event-title { white-space: normal; }
+.fc .fc-daygrid-event-dot { display: none; }
+.fc .fc-daygrid-event-harness { margin-top: 4px; }
+.fc .fc-timegrid-slot { height: 2.6rem; }
+.fc .fc-timegrid-event { padding: 6px 8px; font-size: 1rem; line-height: 1.35; }
+.fc .fc-scrollgrid-sync-inner { padding: 6px 4px; }
+.fc .fc-daygrid-more-link { font-size: 0.95rem; }
+
+/* Compact event content for work schedule */
+.ws-event { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-event .time { font-weight: 600; color: #0f172a; }
+.ws-event .name { color: #475569; font-weight: 600; letter-spacing: 0.2px; }
+
+/* Prevent background scroll when modal open */
+body.modal-open { overflow: hidden; }

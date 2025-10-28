@@ -1,0 +1,66 @@
+<div class="container">
+  <app-back-button></app-back-button>
+  <div class="header">
+    <h2>Ewidencje czasu pracy</h2>
+    <a class="link" routerLink="/work-time">Widok miesiąca</a>
+  </div>
+
+  <div class="filters">
+    <label *ngIf="canSeeCompany()">
+      <input type="checkbox" [ngModel]="onlyMine()" (ngModelChange)="onlyMine.set($event); onOnlyMineChange()" />
+      Tylko moje
+    </label>
+
+    <label>
+      Rok:
+      <input type="number" min="2000" max="2100" [ngModel]="yearFilter()" (ngModelChange)="yearFilter.set(+$event); onPeriodChange()" style="width: 6.5rem;" />
+    </label>
+    <label>
+      Miesiąc:
+      <select [ngModel]="monthFilter()" (ngModelChange)="monthFilter.set(+$event); onPeriodChange()">
+        <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Imię i nazwisko:
+      <input type="text" placeholder="Filtruj po nazwisku" [disabled]="onlyMine()" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" />
+    </label>
+  </div>
+
+  <div *ngIf="loading()" class="loading">Ładowanie...</div>
+  <div *ngIf="error()" class="error">{{ error() }}</div>
+
+  <div class="table-wrapper" *ngIf="!loading() && !error()">
+    <table class="records">
+      <thead>
+        <tr>
+          <th (click)="setSort('period')" style="cursor:pointer;">Okres <span class="sort-indicator">{{ sortIndicator('period') }}</span></th>
+          <th (click)="setSort('employee')" style="cursor:pointer;">Pracownik <span class="sort-indicator">{{ sortIndicator('employee') }}</span></th>
+          <th (click)="setSort('scheduled')" style="cursor:pointer;">Zaplanowane (godz) <span class="sort-indicator">{{ sortIndicator('scheduled') }}</span></th>
+          <th (click)="setSort('leave')" style="cursor:pointer;">Urlopy <span class="sort-indicator">{{ sortIndicator('leave') }}</span></th>
+          <th (click)="setSort('total')" style="cursor:pointer;">Suma <span class="sort-indicator">{{ sortIndicator('total') }}</span></th>
+          <th (click)="setSort('status')" style="cursor:pointer;">Status <span class="sort-indicator">{{ sortIndicator('status') }}</span></th>
+          <th>Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filteredSortedRecords()">
+          <td>{{ r.periodDisplay }}</td>
+          <td>{{ employeeName(r.userId) }}</td>
+          <td>{{ r.scheduledHours | number:'1.0-2' }}</td>
+          <td>{{ r.leaveHours | number:'1.0-2' }}</td>
+          <td>{{ r.totalHours | number:'1.0-2' }}</td>
+          <td>
+            <span class="badge" [class]="getStatusClass(r.status)">{{ statusLabel(r.status) }}</span>
+            <span class="pill" *ngIf="r.isPendingUserAction">Wymaga akcji pracownika</span>
+            <span class="pill pill-warn" *ngIf="r.isPendingSupervisorAction">Wymaga akcji przełożonego</span>
+          </td>
+          <td>
+            <button (click)="view(r)">Szczegóły</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

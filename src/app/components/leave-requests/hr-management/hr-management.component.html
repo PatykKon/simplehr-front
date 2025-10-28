@@ -1,4 +1,6 @@
-<!-- Header -->
+<div class="hr-management-component">
+  <div class="page-container">
+    <!-- Header -->
 <div class="page-header">
   <div class="header-content">
     <h1 class="page-title">
@@ -6,11 +8,11 @@
       Panel HR - Zarządzanie wnioskami urlopowymi
     </h1>
     <div class="header-actions">
-      <button class="btn btn-outline" (click)="showFilters = !showFilters">
+      <button class="btn btn-outline btn-sm" (click)="showFilters = !showFilters" title="Pokaż/ukryj filtry">
         <i class="fas fa-filter"></i>
         Filtry
       </button>
-      <button class="btn btn-primary" (click)="refreshData()">
+      <button class="btn btn-primary btn-sm" (click)="refreshData()" title="Odśwież dane">
         <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
         Odśwież
       </button>
@@ -109,11 +111,11 @@
       </div>
       
       <div class="filter-actions">
-        <button type="button" class="btn btn-outline" (click)="clearFilters()">
+        <button type="button" class="btn btn-outline btn-sm" (click)="clearFilters()">
           <i class="fas fa-eraser"></i>
           Wyczyść
         </button>
-        <button type="button" class="btn btn-primary" (click)="loadProposals()">
+        <button type="button" class="btn btn-primary btn-sm" (click)="loadProposals()">
           <i class="fas fa-search"></i>
           Szukaj
         </button>
@@ -205,7 +207,7 @@
          (change)="toggleSelection(proposal.id)">
           </td>
           
-          <td class="employee-cell">
+          <td class="employee-cell" [title]="proposal.userFirstName + ' ' + proposal.userLastName + ' (@' + proposal.userName + ')'">
             <div class="employee-info">
               <div class="employee-name">{{ proposal.userFirstName }} {{ proposal.userLastName }}</div>
               <div class="employee-username">@{{ proposal.userName }}</div>
@@ -213,7 +215,7 @@
           </td>
           
           <td class="leave-type-cell">
-            <span class="leave-type-badge" [attr.data-type]="proposal.leaveType">
+            <span class="leave-type-badge" [attr.data-type]="proposal.leaveType" [title]="getLeaveTypeLabel(proposal.leaveType)">
               {{ getLeaveTypeLabel(proposal.leaveType) }}
             </span>
           </td>
@@ -231,7 +233,7 @@
           </td>
           
           <td class="status-cell">
-            <span class="status-badge {{ getStatusClass(proposal.status) }}">
+            <span class="status-badge {{ getStatusClass(proposal.status) }}" [title]="getStatusLabel(proposal.status)">
               {{ getStatusLabel(proposal.status) }}
             </span>
           </td>
@@ -245,18 +247,18 @@
           
           <td class="actions-cell">
             <div class="action-buttons">
-              <button class="btn btn-sm btn-outline" [routerLink]="['/leave-requests', proposal.id]">
+              <button class="btn btn-sm btn-outline" [routerLink]="['/leave-requests', proposal.id]" title="Szczegóły wniosku">
                 <i class="fas fa-eye"></i>
-                Szczegóły
+                <span class="btn-label">Szczegóły</span>
               </button>
               
               <div class="quick-actions" *ngIf="proposal.status === 'SUBMITTED'">
                 <button class="btn btn-sm btn-success" 
-                        (click)="approveProposal(proposal.id, 'Szybkie zatwierdzenie')">
+                        (click)="approveProposal(proposal.id, 'Szybkie zatwierdzenie')" title="Zatwierdź">
                   <i class="fas fa-check"></i>
                 </button>
                 <button class="btn btn-sm btn-danger" 
-                        (click)="rejectProposal(proposal.id, 'Odrzucono z panelu HR')">
+                        (click)="rejectProposal(proposal.id, 'Odrzucono z panelu HR')" title="Odrzuć">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
@@ -316,5 +318,8 @@
         {{ bulkActionType === 'approve' ? 'Zatwierdź' : 'Odrzuć' }}
       </button>
     </div>
+  </div>
+</div>
+
   </div>
 </div>

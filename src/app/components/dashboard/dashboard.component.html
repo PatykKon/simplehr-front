@@ -85,37 +85,38 @@
         </div>
 
         <div class="nav-section">
-          <h3>Wnioski urlopowe</h3>
+          <h3>Ewidencja pracy</h3>
           <ul class="nav-list">
             <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/leave-requests')"
+                (click)="navigateTo('/work-time')"
               >
-                <span class="nav-icon">🏖️</span>
-                Moje wnioski
+                <span class="nav-icon">📅</span>
+                Widok miesiąca
               </button>
             </li>
             <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/leave-requests/create')"
+                (click)="navigateTo('/work-time-records')"
               >
-                <span class="nav-icon">➕</span>
-                Nowy wniosek
+                <span class="nav-icon">🗂️</span>
+                Moja ewidencja
               </button>
             </li>
-            <li *ngIf="canManageSystem()">
+            <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/hr/leave-management')"
+                (click)="navigateTo('/leave')"
               >
-                <span class="nav-icon">⚙️</span>
-                Zarządzaj wnioskami
+                <span class="nav-icon">📝</span>
+                Wnioski
               </button>
             </li>
           </ul>
         </div>
+        
 
         @if (canManageSystem()) {
           <div class="nav-section">
@@ -130,24 +131,7 @@
                   Panel Administratora
                 </button>
               </li>
-              <li>
-                <button 
-                  class="nav-item"
-                  (click)="navigateTo('/admin/employees/add')"
-                >
-                  <span class="nav-icon">�➕</span>
-                  Dodaj Pracownika
-                </button>
-              </li>
-              <li>
-                <button 
-                  class="nav-item"
-                  (click)="navigateTo('/leave-configs')"
-                >
-                  <span class="nav-icon">⚙️</span>
-                  Lista urlopów
-                </button>
-              </li>
+
             </ul>
           </div>
       }
@@ -201,31 +185,9 @@
 
       <!-- Quick Actions -->
       <div class="quick-actions">
-        <h3>Szybkie akcje</h3>
+        <h3>Wnioski do obsługi</h3>
         <div class="actions-grid">
-          @if (canManageSchedules()) {
-            <button class="action-btn" (click)="navigateTo('/schedules/create')">
-              <span class="action-icon">📅</span>
-              <span>Utwórz nowy grafik</span>
-            </button>
-          }
-          
-          <button class="action-btn" (click)="navigateTo('/leave-requests/create')">
-            <span class="action-icon">🏖️</span>
-            <span>Złóż wniosek urlopowy</span>
-          </button>
-          
-          <button class="action-btn" (click)="navigateTo('/schedules/published')">
-            <span class="action-icon">📋</span>
-            <span>Zobacz aktualny grafik</span>
-          </button>
-          
-          @if (canManageSystem()) {
-            <button class="action-btn" (click)="navigateTo('/admin')">
-              <span class="action-icon">�</span>
-              <span>Panel Administratora</span>
-            </button>
-          }
+            <!-- TODO: Show requests requiring action -->
         </div>
       </div>
     </main>

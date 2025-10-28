@@ -1,0 +1,25 @@
+.container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+.header h2 { margin: 0; font-size: 1.5rem; color: #111827; }
+.link { margin-left: auto; color: #2563eb; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+.filters { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center; }
+.filters label { display: flex; align-items: center; gap: .5rem; color: #374151; }
+.filters select { padding: .4rem .6rem; border: 1px solid #e5e7eb; border-radius: 8px; }
+.loading { padding: 1rem; }
+.error { color: #b00020; padding: .5rem 1rem; background: #fde7e9; border: 1px solid #f5c2c7; }
+.table-wrapper { border: 1px solid #e5e7eb; border-radius: 8px; overflow: auto; }
+.records { width: 100%; border-collapse: collapse; min-width: 720px; }
+.records th, .records td { padding: .5rem .75rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+.records thead th { background: #f9fafb; color: #374151; font-weight: 600; }
+.records tbody tr:hover { background: #fafafa; }
+.records th .sort-indicator { margin-left: .25rem; color: #6b7280; font-size: .85em; }
+.badge { padding: .15rem .5rem; border-radius: .35rem; font-size: .85rem; }
+.status-draft { background: #eef2ff; color: #3730a3; }
+.status-user-accepted { background: #ecfeff; color: #155e75; }
+.status-supervisor-accepted { background: #ecfdf5; color: #065f46; }
+.status-rejected { background: #fef2f2; color: #991b1b; }
+.pill { margin-left: .5rem; padding: .1rem .4rem; border-radius: 9999px; background: #fff7ed; color: #9a3412; font-size: .75rem; }
+.pill-warn { background: #fef9c3; color: #854d0e; }
+button { padding: .4rem .7rem; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; }
+button:hover { background: #f9fafb; }

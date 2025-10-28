@@ -1,7 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { WorkScheduleService } from '../../services/work-schedule.service';
+import { EmployeeService } from '../../services/employee.service';
+import { EmployeeSummaryResponse } from '../../models/employee.models';
 import { WorkScheduleResponse, WorkScheduleStatus } from '../../models/work-schedule.models';
 import { AuthService } from '../../services/auth.service';
 
@@ -17,18 +19,55 @@ export class WorkScheduleListComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   selectedStatus = signal<string>('');
+  presetStatus = signal<string | null>(null);
+  title = signal<string>('Grafiki pracy');
+  showStatusFilter = computed(() => !this.presetStatus());
+  // Map employeeId -> display name for createdBy info
+  creators = signal<Map<number, string>>(new Map());
 
   // Enums dla template
   WorkScheduleStatus = WorkScheduleStatus;
 
   constructor(
     private workScheduleService: WorkScheduleService,
+    private employeeService: EmployeeService,
     private authService: AuthService,
-    public router: Router
+    public router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    this.loadCreators();
+    const preset = this.route.snapshot.data?.['presetStatus'] as string | undefined;
+    if (preset) {
+      this.presetStatus.set(preset);
+      this.selectedStatus.set(preset);
+    }
+    const routeTitle = this.route.snapshot.data?.['title'] as string | undefined;
+    if (routeTitle) this.title.set(routeTitle);
     this.loadSchedules();
+  }
+
+  private loadCreators(): void {
+    this.employeeService.getAllEmployees().subscribe({
+      next: (employees: EmployeeSummaryResponse[]) => {
+        const map = new Map<number, string>();
+        for (const e of employees) {
+          const name = `${e.firstName} ${e.lastName}`.trim() || e.username;
+          map.set(e.id, name);
+        }
+        this.creators.set(map);
+      },
+      error: () => {
+        // Ignore errors; we'll fall back to showing IDs
+        this.creators.set(new Map());
+      }
+    });
+  }
+
+  getCreatorName(userId: number): string {
+    const name = this.creators().get(userId);
+    return name ? name : `#${userId}`;
   }
 
   loadSchedules(): void {
@@ -51,6 +90,7 @@ export class WorkScheduleListComponent implements OnInit {
   }
 
   onStatusChange(event: Event): void {
+    if (this.presetStatus()) return; // ignore changes when preset is active
     const select = event.target as HTMLSelectElement;
     this.selectedStatus.set(select.value);
     this.loadSchedules();
@@ -146,5 +186,14 @@ export class WorkScheduleListComponent implements OnInit {
       default:
         return status;
     }
+  }
+
+  // Format YYYY-MM-DD to DD/MM/YYYY without timezone shifts
+  formatYMD(dateStr: string | undefined | null): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
   }
 }

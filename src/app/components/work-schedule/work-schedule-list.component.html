@@ -1,7 +1,10 @@
 <div class="schedule-list-container">
   <div class="page-header">
-    <h1>Grafiki pracy</h1>
+    <h1>{{ title() }}</h1>
     <div class="header-actions">
+      <button class="btn" (click)="router.navigate(['/dashboard'])">
+        ← Strona główna
+      </button>
       @if (canManageSchedules()) {
         <button class="btn btn-primary" (click)="router.navigate(['/schedules/create'])">
           <span class="btn-icon">➕</span>
@@ -12,6 +15,7 @@
   </div>
 
   <!-- Filtry -->
+  @if (showStatusFilter()) {
   <div class="filters-section">
     <div class="filter-group">
       <label for="statusFilter">Status:</label>
@@ -30,6 +34,7 @@
       </select>
     </div>
   </div>
+  }
 
   <!-- Loading State -->
   @if (loading()) {
@@ -57,6 +62,7 @@
             <th>Okres</th>
             <th>Status</th>
             <th>Wpisy</th>
+            <th>Utworzył</th>
             <th>Utworzony</th>
             <th>Akcje</th>
           </tr>
@@ -74,9 +80,9 @@
               </td>
               <td>
                 <div class="date-range">
-                  <span class="date-from">{{ schedule.startDate | date:'dd/MM/yyyy' }}</span>
+                  <span class="date-from">{{ formatYMD(schedule.startDate) }}</span>
                   <span class="date-separator">-</span>
-                  <span class="date-to">{{ schedule.endDate | date:'dd/MM/yyyy' }}</span>
+                  <span class="date-to">{{ formatYMD(schedule.endDate) }}</span>
                 </div>
               </td>
               <td>
@@ -86,6 +92,9 @@
               </td>
               <td>
                 <span class="entries-count">{{ schedule.entriesCount }}</span>
+              </td>
+              <td>
+                <span class="created-by">{{ getCreatorName(schedule.createdByUserId) }}</span>
               </td>
               <td>
                 <span class="created-date">{{ schedule.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>

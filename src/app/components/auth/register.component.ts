@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { RegisterRequest } from '../../models/auth.models';
@@ -17,11 +17,13 @@ export class RegisterComponent {
   loading = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  selectedPlan = signal<string | null>(null);
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.registerForm = this.fb.group({
       // Dane użytkownika
@@ -41,6 +43,12 @@ export class RegisterComponent {
       country: [''],
       postalCode: ['']
     });
+
+    // Odczytaj ewentualnie wybrany plan z query params
+    const plan = this.route.snapshot.queryParamMap.get('plan');
+    if (plan) {
+      this.selectedPlan.set(plan);
+    }
   }
 
   onSubmit(): void {

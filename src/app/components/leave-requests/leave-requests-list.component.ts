@@ -27,6 +27,9 @@ import {
             <span class="icon">🏖️</span>
             Moje wnioski urlopowe
           </h2>
+          <button class="btn btn-ghost" (click)="goHome()" title="Wróć do strony głównej">
+            ← Strona główna
+          </button>
           <button class="btn btn-primary" (click)="createNewRequest()">
             <span class="icon">➕</span>
             Nowy wniosek
@@ -1065,6 +1068,9 @@ export class LeaveRequestsListComponent implements OnInit {
   }
 
   // Actions
+  goHome(): void {
+    this.router.navigate(['/dashboard']);
+  }
   createNewRequest(): void {
     this.router.navigate(['/leave-requests/create']);
   }

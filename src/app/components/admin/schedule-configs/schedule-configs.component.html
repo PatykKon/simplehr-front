@@ -1,0 +1,252 @@
+<div class="page">
+  <div class="header">
+    <button class="btn" (click)="goHome()">← Strona główna</button>
+    <h2>Konfiguracje grafików</h2>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <div class="toolbar">
+        <button class="btn primary" (click)="newConfig()">+ Nowa konfiguracja</button>
+      </div>
+      <ul class="list">
+        <li *ngFor="let c of configs(); trackBy: trackByConfig" [class.active]="selectedId()===c.id">
+          <div class="row" (click)="select(c)">
+            <div class="title">{{c.name}}</div>
+            <div class="meta">{{c.type}}</div>
+          </div>
+          <div class="row actions">
+            <button class="btn sm" (click)="select(c); $event.stopPropagation()">Edytuj</button>
+            <button class="btn sm danger" (click)="delete(c); $event.stopPropagation()">Usuń</button>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="editor" *ngIf="true">
+      <form [formGroup]="form" (ngSubmit)="save()" class="form">
+        <div class="form-row">
+          <label>Nazwa</label>
+          <input type="text" formControlName="name" placeholder="Nazwa konfiguracji" />
+        </div>
+        <div class="form-row">
+          <label>Opis</label>
+          <input type="text" formControlName="description" placeholder="Opcjonalnie" />
+        </div>
+        <div class="form-row">
+          <label>Typ</label>
+          <select formControlName="type" (change)="changeType($any($event.target).value)">
+            <option value="FIXED_HOURS">Stałe godziny</option>
+            <option value="WEEKLY_ROTATION">Rotacja tygodniowa</option>
+            <option value="CYCLE_WORK_OFF">Cykl Praca/Wolne</option>
+          </select>
+          <button type="button" class="btn sm" title="Pomoc" (click)="toggleHelp()">?</button>
+        </div>
+        <div class="guide">
+          <ng-container [ngSwitch]="form.get('type')?.value">
+            <div *ngSwitchCase="'FIXED_HOURS'">
+              Wybierz "Rotacja tygodniowa" albo "Cykl Praca/Wolne", aby zobaczyć generatory godzin.
+            </div>
+            <div *ngSwitchCase="'WEEKLY_ROTATION'">
+              <ng-container *ngIf="form.get('rotationMode')?.value !== 'BY_WEEKS'; else wrOk">
+                Ustaw "Tryb rotacji" na "Według tygodni", aby pokazać generator rotacji.
+              </ng-container>
+              <ng-template #wrOk>
+                Generator rotacji jest poniżej. <button type="button" class="btn sm" (click)="scrollTo('weekly-simple-gen')">Przewiń do generatora</button>
+              </ng-template>
+            </div>
+            <div *ngSwitchCase="'CYCLE_WORK_OFF'">
+              <ng-container *ngIf="form.get('cycleMode')?.value !== 'BLOCKS'; else cyOk">
+                Ustaw "Tryb cyklu" na "Bloki", aby pokazać generator bloków.
+              </ng-container>
+              <ng-template #cyOk>
+                Generator bloków jest poniżej. <button type="button" class="btn sm" (click)="scrollTo('blocks-simple-gen')">Przewiń do generatora</button>
+              </ng-template>
+            </div>
+          </ng-container>
+        </div>
+        <div class="help" *ngIf="showHelp()">
+          <ul>
+            <li>Stałe godziny — ten sam przedział godzin dla wszystkich dni (z uwzględnieniem sobót/niedziel/świąt).</li>
+            <li>Rotacja tygodniowa — tryb tygodni (np. 2 tyg. 6–14, 2 tyg. 14–22) lub zakresów dat (od–do).</li>
+            <li>Cykl Praca/Wolne — prosty ciąg (np. WWOO) lub bloki (np. 2 dni 6–14, 2 dni wolne, 2 dni 14–22...).</li>
+          </ul>
+        </div>
+
+        <div class="form-row flags">
+          <label>Uwzględnij dni:</label>
+          <label><input type="checkbox" formControlName="includeSaturdays" /> Soboty</label>
+          <label><input type="checkbox" formControlName="includeSundays" /> Niedziele</label>
+          <label><input type="checkbox" formControlName="includeHolidays" /> Święta</label>
+          <label>
+            <input type="checkbox"
+                   [checked]="form.get('includeSaturdays')?.value && form.get('includeSundays')?.value"
+                   (change)="setWeekendIncluded($any($event.target).checked)" /> Weekend
+          </label>
+        </div>
+
+        <!-- FIXED_HOURS -->
+  <div class="card" *ngIf="form.get('type')?.value === 'FIXED_HOURS'">
+          <div class="form-row">
+            <label>Godzina startu</label>
+            <input type="time" formControlName="startTime" />
+          </div>
+          <div class="form-row">
+            <label>Godzina końca</label>
+            <input type="time" formControlName="endTime" />
+          </div>
+        </div>
+
+        <!-- WEEKLY_ROTATION -->
+        <div class="card" *ngIf="form.get('type')?.value === 'WEEKLY_ROTATION'">
+          <div class="form-row">
+            <label>Tryb rotacji</label>
+            <div>Według tygodni (bez dat — przypiszemy przy tworzeniu grafiku)</div>
+          </div>
+          <ng-container>
+            <!-- Prosty generator: tylko godziny + tygodnie + cykle -->
+            <div class="generator" id="weekly-simple-gen">
+              <div class="gen-title">Generator rotacji (prosty)</div>
+              <div class="form-row">
+                <label>Godziny</label>
+                <div>
+                  <input type="time" [(ngModel)]="genSimpleWeeklyStartTime" [ngModelOptions]="{standalone: true}" /> –
+                  <input type="time" [(ngModel)]="genSimpleWeeklyEndTime" [ngModelOptions]="{standalone: true}" />
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Tyg./zmianę</label>
+                <input type="number" min="1" [(ngModel)]="genSimpleWeeklyWeeks" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-row">
+                <label>Liczba cykli</label>
+                <input type="number" min="1" [(ngModel)]="genSimpleWeeklyCycles" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" (click)="generateWeeklySimple()">Wygeneruj rotację</button>
+                <button type="button" class="btn sm" (click)="toggleAdvancedWeeklyGen()">{{ showAdvancedWeeklyGen() ? 'Ukryj zaawansowane' : 'Pokaż zaawansowane' }}</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label>Zmiany (tygodnie)</label>
+              <div>
+                <button type="button" class="btn sm" (click)="addShiftEmpty()">+ Dodaj zmianę</button>
+                <button type="button" class="btn sm" (click)="addShiftPreset()" title="Wstaw zestaw 6–14 / 14–22 / 22–6">+ Zestaw 3 zmian</button>
+                <button type="button" class="btn sm" (click)="addWeeklyShiftQuick('6-14','06:00','14:00',1)">+ 6–14</button>
+                <button type="button" class="btn sm" (click)="addWeeklyShiftQuick('14-22','14:00','22:00',1)">+ 14–22</button>
+                <button type="button" class="btn sm" (click)="addWeeklyShiftQuick('22-6','22:00','06:00',1)">+ 22–6</button>
+                <button type="button" class="btn sm danger" (click)="clearRotation()" title="Usuń wszystkie">Wyczyść</button>
+              </div>
+            </div>
+            <div class="shifts" formArrayName="rotation">
+              <div class="shift" *ngFor="let sh of rotationArray.controls; let i = index" [formGroupName]="i">
+                <input type="text" formControlName="label" placeholder="etykieta (np. 6-14)" />
+                <input type="time" formControlName="startTime" />
+                <input type="time" formControlName="endTime" />
+                <input type="number" min="1" step="1" formControlName="weeks" /> tyg.
+                <button type="button" class="btn sm danger" (click)="removeShift(i)">Usuń</button>
+              </div>
+            </div>
+
+            <div class="generator" *ngIf="showAdvancedWeeklyGen()" id="weekly-adv-gen">
+              <div class="gen-title">Generator rotacji (opcjonalnie)</div>
+              <div class="form-row">
+                <label>Tygodni na zmianę</label>
+                <input type="number" min="1" [(ngModel)]="genWeeklyWeeksPerShift" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-row">
+                <label>Liczba cykli</label>
+                <input type="number" min="1" [(ngModel)]="genWeeklyCycles" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-row">
+                <label>Godziny</label>
+                <button type="button" class="btn sm" (click)="addGenHour()">+ Dodaj godzinę</button>
+              </div>
+              <div class="shifts">
+                <div class="shift" *ngFor="let h of genHours; let i = index">
+                  <input type="text" [(ngModel)]="h.label" placeholder="etykieta (np. 6-14)" [ngModelOptions]="{standalone: true}" />
+                  <input type="time" [(ngModel)]="h.startTime" [ngModelOptions]="{standalone: true}" />
+                  <input type="time" [(ngModel)]="h.endTime" [ngModelOptions]="{standalone: true}" />
+                  <button type="button" class="btn sm danger" (click)="removeGenHour(i)">Usuń</button>
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" (click)="generateWeeklyRotationFromHours()">Wygeneruj rotację</button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- CYCLE_WORK_OFF -->
+        <div class="card" *ngIf="form.get('type')?.value === 'CYCLE_WORK_OFF'">
+          <div class="form-row">
+            <label>Bloki</label>
+            <button type="button" class="btn sm" (click)="addBlock('WORK')">+ Praca</button>
+            <button type="button" class="btn sm" (click)="addBlock('OFF')">+ Wolne</button>
+            <button type="button" class="btn sm danger" (click)="clearBlocks()" title="Usuń wszystkie">Wyczyść</button>
+          </div>
+          <div class="shifts" formArrayName="blocks">
+            <div class="shift" *ngFor="let b of blockArray.controls; let i = index" [formGroupName]="i">
+              <select formControlName="kind">
+                <option value="WORK">Praca</option>
+                <option value="OFF">Wolne</option>
+              </select>
+              <input type="number" min="1" step="1" formControlName="days" /> dni
+              <input type="time" formControlName="startTime" />
+              <input type="time" formControlName="endTime" />
+              <input type="text" formControlName="label" placeholder="etykieta (np. 6-14)" />
+              <button type="button" class="btn sm danger" (click)="removeBlock(i)">Usuń</button>
+            </div>
+          </div>
+          <div class="hint">Definiujesz tylko wzorzec. Daty przypiszesz podczas tworzenia grafiku.</div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Zapisz</button>
+          <button type="button" class="btn" (click)="openPreviewModal()">Podgląd</button>
+        </div>
+      </form>
+
+      <!-- Modal: Podgląd grafiku -->
+      <div class="modal-overlay" *ngIf="showPreviewModal()" (click)="closePreviewModal()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Podgląd grafiku — {{ form.get('name')?.value || 'bez nazwy' }}</h3>
+            <button type="button" class="btn sm" (click)="closePreviewModal()">✕</button>
+          </div>
+          <div class="modal-controls">
+            <label>Miesiąc podglądu</label>
+            <input type="month" [value]="month()" (change)="setMonth($event)" />
+          </div>
+          <div class="modal-body">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Plan</th>
+                  <th>Uwagi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of preview(); trackBy: trackByPreview">
+                  <td>{{d.date}}</td>
+                  <td>
+                    <ng-container *ngIf="d.isWork; else off">
+                      {{formatHM(d.startTime, d.endTime)}}
+                    </ng-container>
+                    <ng-template #off>Wolne</ng-template>
+                  </td>
+                  <td>{{d.note || ''}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" (click)="closePreviewModal()">Zamknij</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
