@@ -28,6 +28,8 @@ export const routes: Routes = [
   },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { path: 'trial-signup', loadComponent: () => import('./components/auth/trial-signup.component').then(m => m.TrialSignupComponent) },
+  { path: 'verify', loadComponent: () => import('./components/auth/trial-verify.component').then(m => m.TrialVerifyComponent) },
   { 
     path: 'dashboard', 
     component: DashboardComponent,

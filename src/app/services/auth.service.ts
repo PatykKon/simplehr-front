@@ -41,6 +41,16 @@ export class AuthService {
     return this.http.post<RegisterResponse>(`${this.API_URL}/register`, registerRequest);
   }
 
+  // Trial signup (public)
+  trialSignup(request: { email: string; password: string; consent_tc?: boolean; consent_rodo?: boolean }): Observable<any> {
+    return this.http.post(`${this.API_URL}/trial-signup`, request);
+  }
+
+  // Trial verification (public via emailed token)
+  verify(token: string): Observable<any> {
+    return this.http.get(`${this.API_URL}/verify`, { params: { token } });
+  }
+
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
