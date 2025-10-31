@@ -52,6 +52,13 @@ export class RegisterComponent {
 
     // Skonfiguruj formularz pod wybrany plan (np. free: tylko email i hasło)
     this.configureFormForPlan();
+
+    // Jeśli rejestracja ma być planem "trial", kierujemy do dedykowanego widoku trial-signup,
+    // który korzysta z właściwego endpointu /api/auth/trial-signup
+    if ((this.selectedPlan() || '').toLowerCase() === 'trial') {
+      // Preserve any potential prefilled email via query param if present later
+      this.router.navigate(['/trial-signup'], { replaceUrl: true });
+    }
   }
 
   private configureFormForPlan(): void {
