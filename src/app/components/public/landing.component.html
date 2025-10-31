@@ -4,8 +4,8 @@
       <h1>SimpleHR — nowoczesny system HR dla Twojej firmy</h1>
       <p class="subtitle">Zarządzaj pracownikami, harmonogramami i urlopami w jednym, prostym narzędziu.</p>
       <div class="cta-group">
-        <button class="btn btn-primary" (click)="goToRegister('trial')">Załóż konto testowe — 14 dni</button>
-        <button class="btn btn-secondary" (click)="goToRegister()">Zarejestruj się</button>
+        <button class="btn btn-primary" (click)="goToRegister('free')">Załóż darmowe konto</button>
+        <button class="btn btn-secondary" (click)="goToRegister('trial')">Wypróbuj demo (14 dni)</button>
         <button class="btn btn-link" (click)="goToLogin()">Masz już konto? Zaloguj się</button>
       </div>
     </div>
@@ -38,44 +38,73 @@
   </div>
 </section>
 
-<section class="leave">
+<section class="about">
   <div class="container">
-    <h2>Szybki dostęp do urlopów</h2>
-    <div class="cards">
-      <div class="card">
-        <div class="card-header">Złóż wniosek</div>
-        <p class="note">Wymaga zalogowania</p>
-        <button class="btn btn-primary" [routerLink]="['/leave-requests/create']">Utwórz wniosek urlopowy</button>
+    <h2>Dlaczego SimpleHR?</h2>
+    <p class="lead">SimpleHR to lekki, szybki i intuicyjny system do ogarniania codziennych spraw HR: od grafików, przez urlopy, po ewidencję czasu pracy. Zbudowany we współpracy z managerami i HR‑em, skupia się na rzeczach, które naprawdę przyspieszają pracę.</p>
+    <div class="about-grid">
+      <div class="about-item">
+        <h3>Skupienie na prostocie</h3>
+        <p>Wszystko w jednym miejscu — bez przeładowania funkcjami. Wystartujesz w kilka minut, bez szkoleń.</p>
       </div>
-      <div class="card">
-        <div class="card-header">Moje wnioski</div>
-        <p class="note">Podgląd statusów i historii</p>
-        <button class="btn btn-secondary" [routerLink]="['/leave-requests']">Przejdź do listy</button>
+      <div class="about-item">
+        <h3>Dla całego zespołu</h3>
+        <p>Uprawnienia dla Admina, HR, Managera i Pracownika. Każdy widzi to, czego potrzebuje — i ani trochę więcej.</p>
       </div>
-      <div class="card">
-        <div class="card-header">Centrum urlopów</div>
-        <p class="note">Nawigacja do wszystkich funkcji</p>
-        <button class="btn btn-secondary" [routerLink]="['/leave']">Otwórz centrum</button>
+      <div class="about-item">
+        <h3>Bezpiecznie i czytelnie</h3>
+        <p>Przejrzyste statusy, historia zmian i czytelne listy. Dane tylko dla uprawnionych.</p>
       </div>
     </div>
   </div>
   
 </section>
 
+<section class="screens">
+  <div class="container">
+    <h2>Jak wygląda aplikacja?</h2>
+    <p class="lead">Poniżej kilka przykładowych ekranów. W wersji testowej zobaczysz je „na żywo”.</p>
+    <div class="screens-grid">
+      <div class="shot">
+        <div class="shot-thumb">🧭</div>
+        <div class="shot-title">Pulpit i skróty</div>
+        <div class="shot-desc">Szybka nawigacja do najważniejszych funkcji.</div>
+      </div>
+      <div class="shot">
+        <div class="shot-thumb">🏖️</div>
+        <div class="shot-title">Wnioski urlopowe</div>
+        <div class="shot-desc">Składanie, podgląd statusów i szczegóły wniosku.</div>
+      </div>
+      <div class="shot">
+        <div class="shot-thumb">📅</div>
+        <div class="shot-title">Grafiki pracy</div>
+        <div class="shot-desc">Planowanie zmian i publikowanie grafiku.</div>
+      </div>
+      <div class="shot">
+        <div class="shot-thumb">🕒</div>
+        <div class="shot-title">Ewidencja czasu</div>
+        <div class="shot-desc">Podsumowania godzin, nadgodzin i nieobecności.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sekcja szybkiego dostępu do urlopów ukryta na prośbę: można przywrócić później -->
+
 <section class="plans">
   <div class="container">
-    <h2>Wybierz plan dopasowany do potrzeb</h2>
+    <h2>Wybierz plan</h2>
     <div class="cards">
       <div class="card">
-        <div class="card-header">Starter</div>
+        <div class="card-header">Free</div>
         <div class="price">0 zł</div>
-        <div class="note">14 dni testów</div>
+        <div class="note">na zawsze</div>
         <ul>
           <li>Do 10 pracowników</li>
           <li>Harmonogramy i wnioski urlopowe</li>
           <li>Podstawowe raporty</li>
         </ul>
-        <button class="btn btn-primary" (click)="goToRegister('trial')">Rozpocznij test</button>
+        <button class="btn btn-primary" (click)="goToRegister('free')">Załóż darmowe konto</button>
       </div>
       <div class="card popular">
         <div class="badge">Najczęściej wybierany</div>
@@ -109,3 +138,39 @@
     <button class="btn btn-primary" (click)="goToRegister('trial')">Załóż konto testowe</button>
   </div>
 </section>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <div class="brand">SimpleHR</div>
+      <p class="muted">Prosty system do grafików, urlopów i czasu pracy. Szybko. Czytelnie. Skutecznie.</p>
+    </div>
+    <nav class="footer-nav">
+      <div>
+        <h4>Nawigacja</h4>
+        <ul>
+          <li><a routerLink="/login">Logowanie</a></li>
+          <li><a routerLink="/register">Rejestracja</a></li>
+          <li><a routerLink="/leave">Centrum urlopów</a></li>
+          
+        </ul>
+      </div>
+      <div>
+        <h4>Materiały</h4>
+        <ul>
+          <li><a href="#" rel="nofollow noopener">Dokumentacja</a></li>
+          <li><a href="#" rel="nofollow noopener">FAQ</a></li>
+          <li><a href="mailto:contact@simplehr.example">Kontakt</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Informacje</h4>
+        <ul>
+          <li><a href="#" rel="nofollow noopener">Polityka prywatności</a></li>
+          <li><a href="#" rel="nofollow noopener">Warunki korzystania</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+  <div class="container legal">© {{ year }} SimpleHR — Wszelkie prawa zastrzeżone.</div>
+</footer>

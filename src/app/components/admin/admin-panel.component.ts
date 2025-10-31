@@ -24,6 +24,13 @@ import { WorkTimeAdminService } from '../../services/work-time-admin.service';
           <p>Dodaj, importuj i zarządzaj pracownikami</p>
         </div>
 
+        <!-- Employees search discoverability -->
+        <div class="admin-card" routerLink="/admin/employees/list">
+          <div class="card-icon">👤🔎</div>
+          <h3>Szukaj pracowników</h3>
+          <p>Filtruj, sortuj i przeglądaj listy</p>
+        </div>
+
         <div class="admin-card" routerLink="/admin/leave-balances">
           <div class="card-icon">🏖️⚖️</div>
           <h3>Salda Urlopowe</h3>
@@ -66,7 +73,7 @@ import { WorkTimeAdminService } from '../../services/work-time-admin.service';
   styles: [`
     .admin-panel {
       padding: 2rem;
-      max-width: 1200px;
+      max-width: var(--page-max-width, 1200px);
       margin: 0 auto;
     }
 

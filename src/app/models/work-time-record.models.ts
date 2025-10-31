@@ -1,14 +1,19 @@
 export enum WorkTimeRecordStatus {
-  DRAFT = 'DRAFT',
-  USER_ACCEPTED = 'USER_ACCEPTED',
-  SUPERVISOR_ACCEPTED = 'SUPERVISOR_ACCEPTED',
-  REJECTED = 'REJECTED'
+    WAITING,
+    USER_ACCEPTED,
+    SUPERVISOR_ACCEPTED,
+    REJECTED,
+    ANNEX_CREATED,
+    CLOSED
+
 }
 
 export enum WorkTimeRecordAnnexStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+    WAITING,
+    USER_ACCEPTED,
+    SUPERVISOR_ACCEPTED,
+    ANNEX_CREATED,
+    CLOSED
 }
 
 export interface WorkTimeRecordResponse {
@@ -26,6 +31,15 @@ export interface WorkTimeRecordResponse {
   updatedAt: string; // ISO
   isPendingUserAction: boolean;
   isPendingSupervisorAction: boolean;
+}
+
+export interface WorkTimeRecordPageResponse {
+  items: WorkTimeRecordResponse[];
+  page: number;
+  size: number;
+  total_elements: number;
+  total_pages: number;
+  sort: string;
 }
 
 export interface WorkTimeRecordAnnexResponse {
@@ -72,4 +86,8 @@ export interface CreateWorkTimeRecordAnnexRequest {
   correctionDate: string; // YYYY-MM-DD
   correctedHours: number; // 0.0 - 24.0
   reason: string; // 10 - 1000 chars
+}
+
+export interface RejectWorkTimeRecordAnnexRequest {
+  reason: string; // 10 - 2000 chars
 }

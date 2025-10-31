@@ -1,0 +1,128 @@
+<div class="account-container">
+  <header class="header">
+    <h1>Moje konto</h1>
+    <p class="subtitle">Podgląd planu, statusu i informacji rozliczeniowo‑bezpieczeństwowych.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="loading">Ładowanie danych konta…</div>
+  } @else if (error()) {
+    <div class="error">{{ error() }}</div>
+  } @else if (data()) {
+    <section class="grid">
+      <div class="card">
+        <div class="card-title">Status konta</div>
+        <div class="status-line">
+          <span class="badge" [class.ok]="data()?.active" [class.err]="!data()?.active">
+            {{ data()?.active ? 'Aktywne' : 'Nieaktywne' }}
+          </span>
+          <span class="muted">Firma: {{ data()?.companyName }} (ID: {{ data()?.companyId }})</span>
+        </div>
+        <div class="row">
+          <div>
+            <div class="label">Zalogowany jako</div>
+            <div class="value">{{ currentUser()?.username }}</div>
+          </div>
+          <div>
+            <div class="label">Role</div>
+            <div class="value">{{ roles().join(', ') || '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Plan i subskrypcja</div>
+        <div class="row">
+          <div>
+            <div class="label">Plan</div>
+            <div class="value">{{ planLabel(data()?.plan) }}</div>
+          </div>
+          <div>
+            <div class="label">Aktywacja</div>
+            <div class="value">{{ formatDate(data()?.activatedAt || data()?.subscriptionStart) }}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="label">Subskrypcja od</div>
+            <div class="value">{{ formatDate(data()?.subscriptionStart) }}</div>
+          </div>
+          <div>
+            <div class="label">Subskrypcja do</div>
+            <div class="value">{{ formatDate(data()?.subscriptionEnd) }}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="label">Nadchodząca płatność</div>
+            <div class="value">{{ formatDate(data()?.nextPaymentDue) }}</div>
+          </div>
+          <div>
+            <div class="label">Status płatności</div>
+            <div class="value">{{ data()?.lastPaymentStatus || '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Użytkowanie</div>
+        <div class="row">
+          <div>
+            <div class="label">Użytkownicy</div>
+            <div class="value">{{ data()?.usersCount ?? '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Zajęte miejsca</div>
+            <div class="value">{{ data()?.usedSeats ?? '—' }} / {{ data()?.seats ?? '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bezpieczeństwo</div>
+        <div class="row">
+          <div>
+            <div class="label">2FA</div>
+            <div class="value">{{ data()?.twoFactorEnabled == null ? '—' : (data()?.twoFactorEnabled ? 'Włączone' : 'Wyłączone') }}</div>
+          </div>
+          <div>
+            <div class="label">Zmiana hasła</div>
+            <div class="value">{{ formatDate(data()?.lastPasswordChangeAt) }}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="label">Ostatnie logowanie</div>
+            <div class="value">{{ formatDate(data()?.lastLoginAt) }}</div>
+          </div>
+          <div>
+            <div class="label">Ostatnie wydanie tokenu</div>
+            <div class="value">{{ formatDate(data()?.lastTokenIssuedAt) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Rozliczenia</div>
+        <div class="row">
+          <div>
+            <div class="label">Ostatnia faktura</div>
+            <div class="value">{{ data()?.lastInvoiceId || '—' }}</div>
+          </div>
+          <div>
+            <div class="label">Data faktury</div>
+            <div class="value">{{ formatDate(data()?.lastInvoiceDate) }}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="label">Właściciel konta</div>
+            <div class="value">{{ data()?.ownerEmail || '—' }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  } @else {
+    <div class="empty">Brak danych konta.</div>
+  }
+</div>

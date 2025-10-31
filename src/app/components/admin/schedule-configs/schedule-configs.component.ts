@@ -2,8 +2,10 @@ import { Component, OnInit, HostListener, computed, effect, inject, signal } fro
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AdminUserSearchService, UserSearchParams } from '../../../services/admin-user-search.service';
+import { UserSearchItem } from '../../../models/user-search.models';
 import { ScheduleConfigService } from '../../../services/schedule-config.service';
-import { ScheduleConfig, SchedulePatternType, WeeklyRotationShift, DayPreview, WeeklyRotationConfig, CycleWorkOffConfig } from '../../../models/schedule-config.models';
+import { ScheduleConfig, SchedulePatternType, WeeklyRotationShift, DayPreview, WeeklyRotationConfig, CycleWorkOffConfig, ApprovalSettings } from '../../../models/schedule-config.models';
 
 function uuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -24,12 +26,15 @@ export class ScheduleConfigsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private svc = inject(ScheduleConfigService);
   private router = inject(Router);
+  private userSearch = inject(AdminUserSearchService);
 
   configs = signal<ScheduleConfig[]>([]);
   selectedId = signal<string | null>(null);
   month = signal<string>(this.defaultMonth());
   preview = signal<DayPreview[]>([]);
   showPreviewModal = signal<boolean>(false);
+  // Tab selection
+  selectedTab = signal<'GENERATOR' | 'PERMISSIONS'>('GENERATOR');
 
   // Auto-preview when type or month changes (must be created in injection context)
   private _autoPreview = effect(() => {
@@ -121,6 +126,18 @@ export class ScheduleConfigsComponent implements OnInit {
     }>>([]),
   });
 
+  // Permissions/approval settings form
+  approvalForm: FormGroup = this.fb.group({
+    requiresApproval: new FormControl<boolean>(false, { nonNullable: true }),
+    approvalSteps: new FormControl<number>(1, { nonNullable: true, validators: [Validators.min(1), Validators.max(10)] })
+  });
+
+  // Approvers selection state
+  approverCandidates = signal<UserSearchItem[]>([]);
+  approverQuery = signal<string>('');
+  approverLoading = signal<boolean>(false);
+  selectedApprovers = signal<ApprovalSettings['approvers']>([]);
+
   type = computed(() => this.form.get('type')!.value as SchedulePatternType);
 
   ngOnInit(): void {
@@ -153,6 +170,7 @@ export class ScheduleConfigsComponent implements OnInit {
 
   select(cfg: ScheduleConfig): void {
     this.selectedId.set(cfg.id);
+    this.selectedTab.set('GENERATOR');
     this.form.reset();
     // Patch base fields
     this.form.patchValue({
@@ -187,10 +205,19 @@ export class ScheduleConfigsComponent implements OnInit {
       (cfg.blocks || []).forEach(b => this.blockArray.push(this.newBlockGroup(b)));
     }
     this.updatePreview();
+
+    // Load approval settings for this config
+    const appr = this.svc.getApprovalSettings(cfg.id);
+    this.approvalForm.reset({
+      requiresApproval: appr.requiresApproval,
+      approvalSteps: appr.approvalSteps
+    });
+    this.selectedApprovers.set(appr.approvers || []);
   }
 
   newConfig(): void {
     this.selectedId.set(null);
+    this.selectedTab.set('GENERATOR');
     this.form.reset({
       id: uuid(),
       name: '',
@@ -213,6 +240,9 @@ export class ScheduleConfigsComponent implements OnInit {
     this.segmentArray.clear();
     this.blockArray.clear();
     this.updatePreview();
+    // Reset permissions to defaults
+    this.approvalForm.reset({ requiresApproval: false, approvalSteps: 1 });
+    this.selectedApprovers.set([]);
   }
 
   save(): void {
@@ -298,6 +328,50 @@ export class ScheduleConfigsComponent implements OnInit {
 
   addBlock(kind: 'WORK' | 'OFF' = 'WORK'): void { this.blockArray.push(this.newBlockGroup({ kind })); this.updatePreview(); }
   removeBlock(i: number): void { this.blockArray.removeAt(i); this.updatePreview(); }
+
+  // Update block row UI/values when kind changes
+  onBlockKindChanged(index: number): void {
+    const grp = this.blockArray.at(index) as FormGroup;
+    const kind = grp.get('kind')?.value as 'WORK' | 'OFF' | null;
+    if (kind === 'OFF') {
+      // Clear times and set label to 'wolne'
+      grp.get('startTime')?.setValue(null);
+      grp.get('endTime')?.setValue(null);
+      grp.get('label')?.setValue('wolne');
+    } else if (kind === 'WORK') {
+      // Ensure some default times if empty
+      if (!grp.get('startTime')?.value) grp.get('startTime')?.setValue('06:00');
+      if (!grp.get('endTime')?.value) grp.get('endTime')?.setValue('14:00');
+      // Do not override user label for work
+    }
+    this.updatePreview();
+  }
+
+  // Adjacent duplicate detection (highlights if same as previous block)
+  isBlockDuplicate(index: number): boolean {
+    if (index <= 0) return false;
+    const curr = this.blockArray.at(index) as FormGroup;
+    const prev = this.blockArray.at(index - 1) as FormGroup;
+
+    const cKind = curr.get('kind')?.value as 'WORK' | 'OFF' | null;
+    const pKind = prev.get('kind')?.value as 'WORK' | 'OFF' | null;
+    const cDays = Number(curr.get('days')?.value ?? 0);
+    const pDays = Number(prev.get('days')?.value ?? 0);
+
+    if (cKind !== pKind) return false;
+    if (cDays !== pDays) return false;
+
+    if (cKind === 'OFF') {
+      // OFF: same kind and days is enough to mark as duplicate
+      return true;
+    }
+    // WORK: also compare times
+    const cStart = curr.get('startTime')?.value || '';
+    const cEnd = curr.get('endTime')?.value || '';
+    const pStart = prev.get('startTime')?.value || '';
+    const pEnd = prev.get('endTime')?.value || '';
+    return cStart === pStart && cEnd === pEnd;
+  }
 
   // Weekly quick-add helpers
   addWeeklyShiftQuick(label: string, startTime: string, endTime: string, weeks: number = 1): void {
@@ -551,6 +625,59 @@ export class ScheduleConfigsComponent implements OnInit {
 
   // UI helpers
   goHome(): void { this.router.navigateByUrl('/dashboard'); }
+
+  // Tabs
+  setTab(tab: 'GENERATOR' | 'PERMISSIONS') { this.selectedTab.set(tab); }
+
+  // Approval settings save
+  saveApproval(): void {
+    const id = this.selectedId();
+    const value = this.approvalForm.getRawValue() as ApprovalSettings;
+    if (!id) {
+      alert('Najpierw zapisz lub wybierz konfigurację, aby przypisać uprawnienia.');
+      return;
+    }
+    const payload: ApprovalSettings = { ...value, approvers: this.selectedApprovers() };
+    this.svc.saveApprovalSettings(id, payload).subscribe(() => {
+      // no-op, persisted locally
+    });
+  }
+
+  // Approver selection helpers
+  searchApprovers(): void {
+    const q = this.approverQuery().trim();
+    const params: UserSearchParams = q
+      ? { first_name: q, last_name: q, username: q, size: 10 }
+      : { size: 10 };
+    this.approverLoading.set(true);
+    this.userSearch.search(params).subscribe({
+      next: res => { this.approverCandidates.set(res.items || []); this.approverLoading.set(false); },
+      error: () => { this.approverCandidates.set([]); this.approverLoading.set(false); }
+    });
+  }
+  addApprover(u: UserSearchItem): void {
+    const current = this.selectedApprovers();
+    if (current.some(a => a.id === u.user_id)) return;
+    const entry = {
+      id: u.user_id,
+      username: u.username,
+      first_name: u.first_name,
+      last_name: u.last_name,
+      email: u.email
+    };
+    this.selectedApprovers.set([...current, entry]);
+  }
+  removeApprover(id: number): void {
+    this.selectedApprovers.set(this.selectedApprovers().filter(a => a.id !== id));
+  }
+
+  // Utility to show full name
+  fullName(u: { first_name: string | null; last_name: string | null; username?: string; }): string {
+    const fn = (u.first_name || '').trim();
+    const ln = (u.last_name || '').trim();
+    const name = `${fn} ${ln}`.trim();
+    return name || (u as any).username || '';
+  }
 
   setMonth(ev: Event): void {
     const target = ev.target as HTMLInputElement;

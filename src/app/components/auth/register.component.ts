@@ -49,6 +49,24 @@ export class RegisterComponent {
     if (plan) {
       this.selectedPlan.set(plan);
     }
+
+    // Skonfiguruj formularz pod wybrany plan (np. free: tylko email i hasło)
+    this.configureFormForPlan();
+  }
+
+  private configureFormForPlan(): void {
+    const plan = (this.selectedPlan() || '').toLowerCase();
+    if (plan === 'free' || plan === 'trial') {
+      // Usuń wymagania poza email i hasłem
+      const controlsToRelax = ['username', 'firstName', 'lastName', 'companyName', 'taxId', 'companyEmail', 'companyPhone', 'address', 'city', 'country', 'postalCode'];
+      controlsToRelax.forEach(cn => {
+        const c = this.registerForm.get(cn);
+        if (c) {
+          c.clearValidators();
+          c.updateValueAndValidity({ emitEvent: false });
+        }
+      });
+    }
   }
 
   onSubmit(): void {
@@ -56,13 +74,39 @@ export class RegisterComponent {
       this.loading.set(true);
       this.error.set(null);
       this.success.set(null);
-
-      const registerRequest: RegisterRequest = this.registerForm.value;
+      const plan = (this.selectedPlan() || '').toLowerCase();
+      let registerRequest: RegisterRequest = this.registerForm.value;
+      if (plan === 'free' || plan === 'trial') {
+        // Uzupełnij minimalny payload sensownymi domyślnymi danymi
+        const email: string = this.registerForm.get('email')?.value;
+        const usernameFromEmail = email?.split('@')[0] || 'user';
+        registerRequest = {
+          username: usernameFromEmail,
+          email,
+          password: this.registerForm.get('password')?.value,
+          firstName: 'Test',
+          lastName: 'User',
+          companyName: 'Konto Testowe',
+          taxId: '',
+          companyEmail: '',
+          companyPhone: '',
+          address: '',
+          city: '',
+          country: '',
+          postalCode: ''
+        } as RegisterRequest;
+      }
 
       this.authService.register(registerRequest).subscribe({
         next: (response) => {
           console.log('Registration successful', response);
-          this.success.set('Rejestracja przebiegła pomyślnie! Możesz się teraz zalogować.');
+          if ((this.selectedPlan() || '').toLowerCase() === 'free') {
+            this.success.set('Dziękujemy! Wyślemy na Twój e‑mail dane do konta testowego i link aktywacyjny.');
+          } else if ((this.selectedPlan() || '').toLowerCase() === 'trial') {
+            this.success.set('Dziękujemy! Wyślemy na Twój e‑mail dane do konta testowego i link aktywacyjny. Dostęp testowy jest ważny 14 dni od aktywacji.');
+          } else {
+            this.success.set('Rejestracja przebiegła pomyślnie! Możesz się teraz zalogować.');
+          }
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 2000);

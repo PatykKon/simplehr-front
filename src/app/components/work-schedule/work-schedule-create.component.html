@@ -10,10 +10,10 @@
       <div class="form-row">
         <label>Miesiąc</label>
         <div class="month-row">
-          <select class="form-control" [ngModel]="uiMonth()" (ngModelChange)="setUiMonth($event)">
+          <select class="form-control" name="monthSelect" [(ngModel)]="monthSelectorValue" [ngModelOptions]="{ standalone: true }">
             <option *ngFor="let m of months" [ngValue]="m.value">{{ m.label }}</option>
           </select>
-          <select class="form-control" [ngModel]="uiYear()" (ngModelChange)="setUiYear($event)">
+          <select class="form-control" name="yearSelect" [(ngModel)]="yearSelectorValue" [ngModelOptions]="{ standalone: true }">
             <option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
           </select>
         </div>
@@ -70,6 +70,12 @@
             <button class="btn" [class.btn-primary]="viewMode() === 'CALENDAR'" type="button" (click)="viewMode.set('CALENDAR')">Kalendarz</button>
             <button class="btn" [class.btn-primary]="viewMode() === 'TABLE'" type="button" (click)="viewMode.set('TABLE')">Tabela</button>
           </div>
+          @if (hasAnyLeaves()) {
+            <div class="legend-compact">
+              <span class="legend-dot leave"></span>
+              Urlopy
+            </div>
+          }
           @if (viewMode() === 'TABLE' && isMobile()) {
             <div class="mobile-week-nav" style="display:flex; align-items:center; gap:6px; margin-left:8px;">
               <button class="btn" type="button" (click)="prevTableWeek()">◀ 7 dni</button>
@@ -85,8 +91,13 @@
         } @else if (viewMode() === 'TABLE') {
           <div class="table-view">
             @let dates = getVisibleDates();
-            <div class="ws-table" style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
-              <table>
+            @if (showTableTopScrollbar()) {
+              <div class="table-scrollbar" #tableTopScroll (scroll)="onTableScroll($event, 'TOP')" [class.has-shadow]="tableTopHasShadow()">
+                <div class="scroll-spacer" [style.width.px]="tableScrollWidth()"></div>
+              </div>
+            }
+            <div class="ws-table" #tableMainScroll (scroll)="onTableScroll($event, 'MAIN')">
+              <table #scheduleTable>
                 <thead>
                   <tr>
                     <th class="emp sticky">Pracownik</th>
@@ -96,7 +107,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (emp of filteredEmployees(); track emp.id) {
+                  @for (emp of getTableEmployees(); track emp.id) {
                     @let fullName = (emp.firstName + ' ' + emp.lastName).trim() || emp.username;
                     <tr>
                       <td class="emp sticky">
@@ -106,21 +117,32 @@
                         </div>
                       </td>
                       @for (d of dates; track d.date) {
-                        @let entry = getEntryFor(emp.id, d.date);
+                          @let entry = getEntryFor(emp.id, d.date);
+                          @let leaves = getLeavesFor(emp.id, d.date);
                         <td class="day"
                           (click)="onTableCellClick(emp.id, fullName, d.date)"
                           [class.sat]="isSaturdayDate(d.date)"
                           [class.sun]="isSundayDate(d.date)"
-                          [class.holiday]="isHolidayDate(d.date)"
+                            [class.holiday]="isHolidayDate(d.date)"
+                            [class.leave-cell]="leaves.length > 0"
+                            [class.leave-conflict]="leaves.length > 0 && !!entry"
+                            [title]="leaves.length ? leaveTooltip(leaves) : ''"
                           >
                           @if (entry) {
                             <div class="cell-time">
                               <div class="start">{{ formatDisplayHM(entry.startTime) }}</div>
                               <div class="end">{{ formatDisplayHM(entry.endTime) }}</div>
                             </div>
-                          } @else {
-                            <span style="color:#94a3b8;">—</span>
                           }
+                            @if (!entry && leaves.length === 0) {
+                              <span style="color:#94a3b8;">—</span>
+                            }
+                            @if (leaves.length) {
+                              <div class="cell-leave">
+                                <span class="leave-dot"></span>
+                                {{ formatLeaveTypes(leaves) }}
+                              </div>
+                            }
                         </td>
                       }
                     </tr>

@@ -174,7 +174,7 @@ import { EmployeeDetailsResponse, Role } from '../../models/employee.models';
   styles: [`
     .edit-employee {
       padding: 2rem;
-      max-width: 800px;
+      max-width: min(var(--page-max-width, 1200px), 800px);
       margin: 0 auto;
     }
 

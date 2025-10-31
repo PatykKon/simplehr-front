@@ -9,9 +9,12 @@ import {
   CreateLeaveProposalRequest,
   LeaveType,
   LEAVE_TYPE_OPTIONS,
-  LEAVE_TYPE_LABELS
+  LEAVE_TYPE_LABELS,
+  EmployeeLeavesResponse,
+  EmployeeLeaveInfo
 } from '../../models/leave-proposal.models';
 import { EmployeeSummaryResponse } from '../../models/employee.models';
+import { BehaviorSubject } from 'rxjs';
 
 interface CalendarDay {
   date: Date;
@@ -24,315 +27,22 @@ interface CalendarDay {
   isInRange: boolean;
   hasLeave: boolean;
   isWeekend: boolean;
-  leaves?: any[];
+  leaves?: CalendarLeaveEntry[];
+}
+
+interface CalendarLeaveEntry {
+  date: string;
+  leaveType: LeaveType;
+  employeeId: number;
+  userName: string;
 }
 
 @Component({
   selector: 'app-create-leave-request',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  styleUrl: './create-leave-request.component.css',
-  template: `
-    <div class="create-leave-request">
-      <div class="header">
-        <h1>📝 Nowy wniosek urlopowy</h1>
-        <button class="btn-back" (click)="goBack()">← Powrót</button>
-      </div>
-
-      <!-- Error -->
-      <div *ngIf="error" class="alert alert-error">
-        <strong>❌ Błąd:</strong><br>
-        {{ error }}
-      </div>
-
-      <!-- Success -->
-      <div *ngIf="success" class="alert alert-success">
-        <strong>✅ Sukces:</strong><br>
-        {{ success }}
-      </div>
-
-      <!-- Main Content - Two Column Layout -->
-      <div class="main-content">
-        <!-- Left Column - Calendar -->
-        <div class="calendar-section">
-          <div class="calendar-header">
-            <h2>📅 Kalendarz urlopów</h2>
-            <div class="calendar-controls">
-              <button type="button" class="btn-nav" (click)="previousMonth()">‹</button>
-              <span class="current-month">{{ getMonthYearText() }}</span>
-              <button type="button" class="btn-nav" (click)="nextMonth()">›</button>
-            </div>
-          </div>
-          
-          <div class="calendar-container">
-            <div class="calendar-grid">
-              <!-- Week days header -->
-              <div class="calendar-header-row">
-                <div class="calendar-day-header" *ngFor="let day of weekDays">{{ day }}</div>
-              </div>
-              
-              <!-- Calendar days -->
-              <div class="calendar-days">
-                <div *ngFor="let day of calendarDays" 
-                     class="calendar-day"
-                     [class.other-month]="!day.isCurrentMonth"
-                     [class.today]="day.isToday"
-                     [class.selected]="day.isSelected"
-                     [class.range-start]="day.isRangeStart"
-                     [class.range-end]="day.isRangeEnd"
-                     [class.in-range]="day.isInRange"
-                     [class.has-leave]="day.hasLeave"
-                     [class.weekend]="day.isWeekend"
-                     (click)="selectDate(day)">
-                  <span class="day-number">{{ day.dayNumber }}</span>
-                  <div class="day-leaves" *ngIf="day.leaves && day.leaves.length > 0">
-                    <div class="leave-indicator" 
-                         *ngFor="let leave of day.leaves"
-                         [style.background-color]="getLeaveTypeColor(leave.leaveType)"
-                         [title]="leave.userName + ' - ' + getLeaveTypeLabel(leave.leaveType)">
-                      {{ leave.userName.charAt(0) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Calendar Legend -->
-          <div class="calendar-legend">
-            <h3>Legenda:</h3>
-            <div class="legend-items">
-              <div class="legend-item">
-                <span class="legend-color today-color"></span>
-                <span>Dziś</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color selected-color"></span>
-                <span>Wybrane daty</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color has-leave-color"></span>
-                <span>Urlopy innych</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color weekend-color"></span>
-                <span>Weekend</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column - Form -->
-        <div class="form-section-container">
-          <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()" class="leave-form">
-            
-            <!-- Leave Type Selection -->
-            <div class="form-section">
-              <h2>🏷️ Typ urlopu</h2>
-              <div class="form-group">
-                <select formControlName="leaveType" class="form-control large-select">
-                  <option value="">Wybierz typ urlopu</option>
-                  <option *ngFor="let option of leaveTypeOptions" [value]="option.value">
-                    {{ option.icon }} {{ option.label }}
-                  </option>
-                </select>
-                <div class="selected-type-info" *ngIf="leaveForm.get('leaveType')?.value">
-                  <div class="type-details">
-                    <span class="type-icon">{{ getSelectedTypeIcon() }}</span>
-                    <div class="type-text">
-                      <strong>{{ getSelectedTypeLabel() }}</strong>
-                      <p>{{ getSelectedTypeDescription() }}</p>
-                      
-                      <!-- Leave Balance Info -->
-                      <div class="balance-info" *ngIf="getSelectedTypeBalance()">
-                        <div class="balance-item">
-                          <span class="balance-label">📊 Dostępne dni:</span>
-                          <span class="balance-value available">{{ getAvailableDays() }}</span>
-                        </div>
-                        <div class="balance-item">
-                          <span class="balance-label">✅ Wykorzystane:</span>
-                          <span class="balance-value used">{{ getUsedDays() }}</span>
-                        </div>
-                        <div class="balance-item">
-                          <span class="balance-label">🎯 Limit roczny:</span>
-                          <span class="balance-value total">{{ getTotalDays() }}</span>
-                        </div>
-                      </div>
-                      
-                      <!-- Loading balances -->
-                      <div class="balance-loading" *ngIf="loadingBalances">
-                        <small>⏳ Ładowanie informacji o dostępnych dniach...</small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="error-message" *ngIf="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
-                  <small *ngIf="leaveForm.get('leaveType')?.errors?.['required']">
-                    Typ urlopu jest wymagany
-                  </small>
-                </div>
-              </div>
-            </div>
-
-            <!-- Date Range -->
-            <div class="form-section">
-              <h2>📅 Okres urlopu</h2>
-              <div class="date-range">
-                <div class="form-group">
-                  <label for="startDate">Data rozpoczęcia *</label>
-                  <input 
-                    type="date" 
-                    id="startDate" 
-                    formControlName="startDate"
-                    class="form-control"
-                    [min]="minDate"
-                    [class.error]="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
-                  <div class="error-message" *ngIf="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
-                    <small *ngIf="leaveForm.get('startDate')?.errors?.['required']">
-                      Data rozpoczęcia jest wymagana
-                    </small>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="endDate">Data zakończenia *</label>
-                  <input 
-                    type="date" 
-                    id="endDate" 
-                    formControlName="endDate"
-                    class="form-control"
-                    [min]="leaveForm.get('startDate')?.value || minDate"
-                    [class.error]="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
-                  <div class="error-message" *ngIf="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
-                    <small *ngIf="leaveForm.get('endDate')?.errors?.['required']">
-                      Data zakończenia jest wymagana
-                    </small>
-                    <small *ngIf="leaveForm.get('endDate')?.errors?.['dateRange']">
-                      Data zakończenia nie może być wcześniejsza niż data rozpoczęcia
-                    </small>
-                  </div>
-                </div>
-                
-                <!-- Quick Date Selection Buttons -->
-                <div class="quick-dates">
-                  <div class="quick-dates-header">
-                    <h4>Szybkie wybory:</h4>
-                    <button type="button" class="btn-clear-dates" (click)="clearSelectedDates()" 
-                            *ngIf="leaveForm.get('startDate')?.value || leaveForm.get('endDate')?.value">
-                      🗑️ Wyczyść daty
-                    </button>
-                  </div>
-                  <div class="quick-buttons">
-                    <button type="button" class="btn-quick" (click)="setDatesFromToday(1)">1 dzień</button>
-                    <button type="button" class="btn-quick" (click)="setDatesFromToday(3)">3 dni</button>
-                    <button type="button" class="btn-quick" (click)="setDatesFromToday(7)">1 tydzień</button>
-                    <button type="button" class="btn-quick" (click)="setDatesFromToday(14)">2 tygodnie</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="date-summary" *ngIf="leaveForm.get('startDate')?.value && leaveForm.get('endDate')?.value">
-                <div class="summary-card">
-                  <div class="summary-item">
-                    <span class="summary-icon">📊</span>
-                    <strong>Liczba dni roboczych:</strong> {{ getWorkingDays() }}
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-icon">📅</span>
-                    <strong>Uwzględnia weekendy:</strong> {{ includesWeekends() ? 'Tak' : 'Nie' }}
-                  </div>
-                  <div class="summary-item" *ngIf="getWorkingDays() > 0">
-                    <span class="summary-icon">🗓️</span>
-                    <strong>Okres:</strong> {{ formatDateRange() }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Details -->
-            <div class="form-section">
-              <h2>📋 Szczegóły wniosku</h2>
-              
-              <div class="form-group">
-                <label for="title">Tytuł wniosku</label>
-                <input 
-                  type="text" 
-                  id="title" 
-                  formControlName="title"
-                  class="form-control"
-                  placeholder="np. Urlop wypoczynkowy - wakacje"
-                  maxlength="100">
-                <small class="help-text">Opcjonalny krótki tytuł opisujący wniosek</small>
-              </div>
-
-              <div class="form-group">
-                <label for="description">Opis / Uzasadnienie</label>
-                <textarea 
-                  id="description" 
-                  formControlName="description"
-                  class="form-control textarea"
-                  rows="4"
-                  placeholder="Opcjonalny opis powodu urlopu..."
-                  maxlength="500"></textarea>
-                <small class="help-text">Opcjonalny opis powodu lub celu urlopu</small>
-              </div>
-
-              <div class="form-group">
-                <label for="handoverNotes">Uwagi o przekazaniu obowiązków</label>
-                <textarea 
-                  id="handoverNotes" 
-                  formControlName="handoverNotes"
-                  class="form-control textarea"
-                  rows="3"
-                  placeholder="Informacje o przekazaniu zadań, kontaktach zastępczych..."
-                  maxlength="500"></textarea>
-                <small class="help-text">Informacje o tym, kto będzie wykonywał Twoje obowiązki</small>
-              </div>
-            </div>
-
-            <!-- Substitute -->
-            <div class="form-section" *ngIf="employees.length > 0">
-              <h2>👤 Zastępstwo</h2>
-              
-              <div class="form-group">
-                <label for="substituteUserId">Osoba zastępująca</label>
-                <select 
-                  id="substituteUserId" 
-                  formControlName="substituteUserId"
-                  class="form-control">
-                  <option value="">Wybierz osobę zastępującą (opcjonalne)</option>
-                  <option *ngFor="let employee of employees" 
-                          [value]="employee.id"
-                          [disabled]="employee.id === currentUserId">
-                    {{ employee.firstName }} {{ employee.lastName }} ({{ employee.username }})
-                  </option>
-                </select>
-                <small class="help-text">Wybierz kolegę/koleżankę, który będzie wykonywał Twoje zadania</small>
-              </div>
-            </div>
-
-            <!-- Submit -->
-            <div class="form-actions">
-              <button type="button" class="btn-secondary" (click)="resetForm()">
-                🔄 Resetuj formularz
-              </button>
-              <button type="button" class="btn-secondary" (click)="goBack()">
-                Anuluj
-              </button>
-              <button 
-                type="submit" 
-                class="btn-primary"
-                [disabled]="leaveForm.invalid || submitting">
-                <span *ngIf="submitting">⏳ Wysyłanie...</span>
-                <span *ngIf="!submitting">📤 Złóż wniosek urlopowy</span>
-              </button>
-            </div>
-
-          </form>
-        </div>
-      </div>
-    </div>
-  `
+  styleUrls: ['./create-leave-request.component.css'],
+  templateUrl: './create-leave-request.component.html'
 })
 export class CreateLeaveRequestComponent implements OnInit {
   leaveForm!: FormGroup;
@@ -352,9 +62,12 @@ export class CreateLeaveRequestComponent implements OnInit {
   selectedStartDate: Date | null = null;
   selectedEndDate: Date | null = null;
   isSelectingRange = false;
-
-  // Mock leave data - w przyszłości z API
-  mockLeaves: any[] = [];
+  leavesLoading = false;
+  leavesError: string | null = null;
+  private readonly currentLeavesSubject = new BehaviorSubject<CalendarLeaveEntry[]>([]);
+  readonly currentLeaves$ = this.currentLeavesSubject.asObservable();
+  private readonly monthLeavesCache = new Map<string, CalendarLeaveEntry[]>();
+  private currentMonthLeaveIndex = new Map<string, CalendarLeaveEntry[]>();
   
   // Leave balances
   leaveBalances: any = {};
@@ -379,7 +92,7 @@ export class CreateLeaveRequestComponent implements OnInit {
     const currentUser = this.authService.getCurrentUser();
     this.currentUserId = currentUser ? currentUser.id : null;
     this.generateCalendar();
-    this.loadLeaves();
+    this.loadLeavesForCurrentMonth();
     this.loadLeaveBalances();
   }
 
@@ -560,13 +273,25 @@ export class CreateLeaveRequestComponent implements OnInit {
   }
 
   previousMonth(): void {
-    this.currentCalendarDate.setMonth(this.currentCalendarDate.getMonth() - 1);
+    this.currentCalendarDate = new Date(
+      this.currentCalendarDate.getFullYear(),
+      this.currentCalendarDate.getMonth() - 1,
+      1
+    );
+    this.currentMonthLeaveIndex = new Map();
     this.generateCalendar();
+    this.loadLeavesForCurrentMonth();
   }
 
   nextMonth(): void {
-    this.currentCalendarDate.setMonth(this.currentCalendarDate.getMonth() + 1);
+    this.currentCalendarDate = new Date(
+      this.currentCalendarDate.getFullYear(),
+      this.currentCalendarDate.getMonth() + 1,
+      1
+    );
+    this.currentMonthLeaveIndex = new Map();
     this.generateCalendar();
+    this.loadLeavesForCurrentMonth();
   }
 
   getMonthYearText(): string {
@@ -626,7 +351,10 @@ export class CreateLeaveRequestComponent implements OnInit {
   }
 
   private formatDateForInput(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private isDateSelected(date: Date): boolean {
@@ -661,27 +389,97 @@ export class CreateLeaveRequestComponent implements OnInit {
   }
 
   private hasLeaveOnDate(date: Date): boolean {
-    return this.mockLeaves.some(leave => {
-      const startDate = new Date(leave.startDate);
-      const endDate = new Date(leave.endDate);
-      return date >= startDate && date <= endDate;
-    });
+    const key = this.getDateKey(date);
+    return this.currentMonthLeaveIndex.has(key);
   }
 
-  private getLeavesForDate(date: Date): any[] {
-    return this.mockLeaves.filter(leave => {
-      const startDate = new Date(leave.startDate);
-      const endDate = new Date(leave.endDate);
-      return date >= startDate && date <= endDate;
-    });
+  private getLeavesForDate(date: Date): CalendarLeaveEntry[] {
+    const key = this.getDateKey(date);
+    return this.currentMonthLeaveIndex.get(key) || [];
   }
 
-  loadLeaves(): void {
-    this.leaveProposalService.getAllLeaveProposals().subscribe({
-      next: (leaves) => {
-        this.mockLeaves = leaves;
+  private loadLeavesForCurrentMonth(): void {
+    const year = this.currentCalendarDate.getFullYear();
+    const month = this.currentCalendarDate.getMonth() + 1;
+    const cacheKey = `${year}-${month.toString().padStart(2, '0')}`;
+
+    const cached = this.monthLeavesCache.get(cacheKey);
+    if (cached) {
+      this.leavesLoading = false;
+      this.leavesError = null;
+      this.setCurrentMonthLeaves(cached);
+      return;
+    }
+
+    this.leavesLoading = true;
+    this.leavesError = null;
+
+    this.leaveProposalService.getEmployeesLeavesByMonth(year, month).subscribe({
+      next: (response) => {
+        const leaves = this.flattenLeavesResponse(response);
+        this.monthLeavesCache.set(cacheKey, leaves);
+        this.leavesLoading = false;
+        this.leavesError = null;
+        this.setCurrentMonthLeaves(leaves);
+      },
+      error: (error) => {
+        console.error('Failed to load leaves for month', error);
+        this.leavesLoading = false;
+        this.leavesError = 'Nie udało się załadować urlopów dla wybranego miesiąca.';
+        this.setCurrentMonthLeaves([]);
       }
     });
+  }
+
+  private setCurrentMonthLeaves(leaves: CalendarLeaveEntry[]): void {
+  this.currentLeavesSubject.next(leaves);
+    this.currentMonthLeaveIndex = new Map();
+
+    leaves.forEach(leave => {
+      const key = this.normalizeDateString(leave.date);
+      const existing = this.currentMonthLeaveIndex.get(key);
+      if (existing) {
+        existing.push(leave);
+      } else {
+        this.currentMonthLeaveIndex.set(key, [leave]);
+      }
+    });
+
+    this.generateCalendar();
+  }
+
+  private flattenLeavesResponse(response: EmployeeLeavesResponse): CalendarLeaveEntry[] {
+    if (!response || !response.employees?.length) {
+      return [];
+    }
+
+    const entries: CalendarLeaveEntry[] = [];
+    response.employees.forEach((employee: EmployeeLeaveInfo) => {
+      const displayName = this.buildEmployeeName(employee);
+      (employee.leaveDays || []).forEach(leaveDay => {
+        if (!leaveDay?.date) {
+          return;
+        }
+        entries.push({
+          date: this.normalizeDateString(leaveDay.date),
+          leaveType: leaveDay.leaveType,
+          employeeId: employee.employeeId,
+          userName: displayName
+        });
+      });
+    });
+
+    return entries;
+  }
+
+  private buildEmployeeName(employee: EmployeeLeaveInfo): string {
+    const first = (employee.firstName || '').trim();
+    const last = (employee.lastName || '').trim();
+    const fullName = `${first} ${last}`.trim();
+    if (fullName) {
+      return fullName;
+    }
+    return employee.email || `#${employee.employeeId}`;
   }
 
   // Quick date selection methods
@@ -775,13 +573,6 @@ export class CreateLeaveRequestComponent implements OnInit {
     return option?.icon || '';
   }
 
-  getSelectedTypeDescription(): string {
-    const selectedType = this.leaveForm.get('leaveType')?.value;
-    if (!selectedType) return '';
-    const option = this.leaveTypeOptions.find(opt => opt.value === selectedType);
-    return option?.description || '';
-  }
-
   getLeaveTypeLabel(type: LeaveType): string {
     return LEAVE_TYPE_LABELS[type] || type;
   }
@@ -794,13 +585,76 @@ export class CreateLeaveRequestComponent implements OnInit {
   formatDateRange(): string {
     const startDate = this.leaveForm.get('startDate')?.value;
     const endDate = this.leaveForm.get('endDate')?.value;
-    
-    if (!startDate || !endDate) return '';
-    
+    if (!startDate || !endDate) {
+      return '';
+    }
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
     return `${start.toLocaleDateString('pl-PL')} - ${end.toLocaleDateString('pl-PL')}`;
+  }
+
+  selectedSubstituteName(): string {
+    const controlValue = this.leaveForm.get('substituteUserId')?.value;
+    if (!controlValue) {
+      return 'Brak';
+    }
+
+    const id = Number(controlValue);
+    if (!id) {
+      return 'Brak';
+    }
+
+    const employee = this.employees.find(emp => emp.id === id);
+    if (!employee) {
+      return `#${id}`;
+    }
+
+    const fullName = `${(employee.firstName || '').trim()} ${(employee.lastName || '').trim()}`.trim();
+    return fullName || employee.username || `#${id}`;
+  }
+
+  private getDateKey(date: Date): string {
+    return this.normalizeDateString(this.formatDateForInput(date));
+  }
+
+  private normalizeDateString(date: string): string {
+    if (!date) {
+      return '';
+    }
+    const plainDate = date.split('T')[0];
+    const [year, month, day] = plainDate.split('-');
+    if (year && month && day) {
+      return `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return plainDate;
+  }
+
+  getCurrentStep(): number {
+    if (!this.isStepCompleted(1)) {
+      return 1;
+    }
+    if (!this.isStepCompleted(2)) {
+      return 2;
+    }
+    return 3;
+  }
+
+  isStepCompleted(step: number): boolean {
+    switch (step) {
+      case 1:
+        return !!(this.leaveForm.get('leaveType')?.valid);
+      case 2:
+        return !!(this.leaveForm.get('startDate')?.valid && this.leaveForm.get('endDate')?.valid);
+      case 3:
+        return this.leaveForm.valid;
+      default:
+        return false;
+    }
+  }
+
+  isStepActive(step: number): boolean {
+    return this.getCurrentStep() === step;
   }
 
   goBack(): void {

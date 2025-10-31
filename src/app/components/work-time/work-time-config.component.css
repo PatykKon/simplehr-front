@@ -1,4 +1,4 @@
-.wtc-container { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
+.wtc-container { max-width: var(--page-max-width, 1200px); margin: 24px auto; padding: 0 16px; }
 .wtc-layout { display:grid; grid-template-columns: 260px 1fr; gap: 24px; align-items:start; }
 .wtc-sidebar { background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; position: sticky; top: 16px; height: fit-content; }
 .wtc-title { font-weight: 700; color:#111827; margin-bottom: 8px; }

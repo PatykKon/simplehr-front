@@ -1,0 +1,127 @@
+<div class="admin-wtr-search">
+  <app-back-button label="Powrót" />
+  <header class="page-header">
+    <div>
+      <h1>Wyszukiwarka ewidencji czasu pracy (Admin)</h1>
+      <p>Filtruj i sortuj ewidencje z paginacją 0‑based.</p>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-actions">
+      <button type="button" class="btn" (click)="clearFilters()" [disabled]="loading()">Wyczyść</button>
+    </div>
+
+    @if (canSeeCompany()) {
+      <div class="filter-group checkbox">
+        <label>
+          <input type="checkbox" [checked]="myOnly()" (change)="onMyOnlyToggle($event.target.checked)" />
+          Tylko moje
+        </label>
+      </div>
+    }
+
+    <div class="filter-group">
+      <label for="year">Rok</label>
+      <input id="year" type="number" min="2000" [ngModel]="year()" (ngModelChange)="onYearChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="month">Miesiąc</label>
+      <select id="month" [ngModel]="month()" (ngModelChange)="onMonthChange($event)">
+        @for (m of months; track m.value) {
+          <option [ngValue]="m.value">{{ m.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="status">Status</label>
+      <input id="status" type="text" placeholder="np. ANNEX_CREATED" [ngModel]="status()" (ngModelChange)="onStatusChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="first-name">Imię</label>
+      <input id="first-name" type="text" placeholder="Imię zawiera…" [ngModel]="firstName()" (ngModelChange)="onFirstNameChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="last-name">Nazwisko</label>
+      <input id="last-name" type="text" placeholder="Nazwisko zawiera…" [ngModel]="lastName()" (ngModelChange)="onLastNameChange($event)" />
+    </div>
+
+    @if (canSeeCompany()) {
+      <div class="filter-group">
+        <label for="employee-id">ID pracownika</label>
+        <input id="employee-id" type="number" min="1" [ngModel]="employeeId() ?? ''" (ngModelChange)="onEmployeeIdChange($event)" />
+      </div>
+    }
+  </section>
+
+  <section class="content">
+    @if (loading()) {
+      <div class="state state-loading">Ładowanie…</div>
+    } @else if (error()) {
+      <div class="state state-error">{{ error() }}</div>
+    } @else if (!(data()?.items?.length)) {
+      <div class="state state-empty">Brak wyników</div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="app-table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="toggleSort('createdAt')">
+                Utworzono
+                <span class="sort-indicator" *ngIf="sortField() === 'createdAt'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th>Pracownik</th>
+              <th>Okres</th>
+              <th>Planowane godz.</th>
+              <th>Przepracowane godz.</th>
+              <th>Godz. urlopowe</th>
+              <th>Dni urlopu</th>
+              <th class="sortable" (click)="toggleSort('status')">
+                Status
+                <span class="sort-indicator" *ngIf="sortField() === 'status'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.record_id) {
+              <tr>
+                <td>{{ formatDate(item.created_at) }}</td>
+                <td>{{ item.employee_first_name }} {{ item.employee_last_name }}</td>
+                <td>{{ formatMonth(item.period_year, item.period_month) }}</td>
+                <td>{{ item.planned_hours }}</td>
+                <td>{{ item.worked_hours }}</td>
+                <td>{{ item.leave_hours }}</td>
+                <td>{{ item.leave_days }}</td>
+                <td>{{ item.status }}</td>
+                <td class="actions">
+                  <a class="link-btn" [routerLink]="['/work-time-records', item.record_id]">Szczegóły</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-pagination">
+        <div class="page-info">Strona {{ (data()?.page ?? 0) + 1 }} z {{ data()?.total_pages ?? 0 }} · {{ data()?.total_elements ?? 0 }} wyników</div>
+        <div class="page-controls">
+          <button (click)="goToPage(0)" [disabled]="(data()?.page ?? 0) === 0">« Pierwsza</button>
+          <button (click)="goToPage((data()?.page ?? 0) - 1)" [disabled]="(data()?.page ?? 0) === 0">‹ Poprzednia</button>
+          <button (click)="goToPage((data()?.page ?? 0) + 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Następna ›</button>
+          <button (click)="goToPage((data()?.total_pages ?? 1) - 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Ostatnia »</button>
+          <select [ngModel]="size()" (ngModelChange)="changeSize($event)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+          </select>
+        </div>
+      </div>
+    }
+  </section>
+</div>

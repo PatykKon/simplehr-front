@@ -1,0 +1,339 @@
+<div class="create-leave-request">
+  <div class="page-header">
+    <div class="page-header__info">
+      <p class="breadcrumb">Wnioski urlopowe / Nowy wniosek</p>
+      <h1>Nowy wniosek urlopowy</h1>
+      <p class="page-subtitle">Wybierz typ urlopu, określ zakres dat i uzupełnij dodatkowe informacje.</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-secondary" (click)="goBack()">← Powrót</button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">
+    <strong>Błąd:</strong>
+    <span>{{ error }}</span>
+  </div>
+
+  <div *ngIf="success" class="alert alert-success">
+    <strong>Sukces:</strong>
+    <span>{{ success }}</span>
+  </div>
+
+  <div class="content-grid">
+    <form class="form-column" [formGroup]="leaveForm" (ngSubmit)="onSubmit()">
+      <div class="progress-steps">
+        <div class="progress-step" [class.completed]="isStepCompleted(1)" [class.active]="isStepActive(1)">
+          <span class="step-index">1</span>
+          <div class="step-copy">
+            <p>Typ urlopu</p>
+            <small>{{ leaveForm.get('leaveType')?.value ? 'Wybrano typ urlopu' : 'Wybierz interesujący Cię typ' }}</small>
+          </div>
+        </div>
+        <div class="progress-step" [class.completed]="isStepCompleted(2)" [class.active]="isStepActive(2)">
+          <span class="step-index">2</span>
+          <div class="step-copy">
+            <p>Zakres dat</p>
+            <small>{{ leaveForm.get('startDate')?.value && leaveForm.get('endDate')?.value ? 'Zakres uzupełniony' : 'Wybierz początek i koniec' }}</small>
+          </div>
+        </div>
+        <div class="progress-step" [class.completed]="isStepCompleted(3)" [class.active]="isStepActive(3)">
+          <span class="step-index">3</span>
+          <div class="step-copy">
+            <p>Dodatki</p>
+            <small>{{ isStepCompleted(3) ? 'Formularz gotowy do wysłania' : 'Uzupełnij szczegóły i zastępstwo' }}</small>
+          </div>
+        </div>
+      </div>
+
+      <section class="card">
+        <header class="card-header compact">
+          <h2>Typ urlopu</h2>
+          <span class="card-hint">Wybierz rodzaj i szybko sprawdź limit dni.</span>
+        </header>
+
+        <div class="field-group">
+          <label for="leaveType">Typ urlopu *</label>
+          <select
+            id="leaveType"
+            class="form-control"
+            formControlName="leaveType">
+            <option value="">Wybierz typ urlopu</option>
+            <option *ngFor="let option of leaveTypeOptions" [value]="option.value">
+              {{ option.icon }} {{ option.label }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
+            <small *ngIf="leaveForm.get('leaveType')?.errors?.['required']">
+              Typ urlopu jest wymagany
+            </small>
+          </div>
+        </div>
+
+        <div class="selected-type-info" *ngIf="leaveForm.get('leaveType')?.value">
+          <div class="type-summary">
+            <span class="type-icon">{{ getSelectedTypeIcon() }}</span>
+            <div class="type-copy">
+              <strong class="type-name">{{ getSelectedTypeLabel() }}</strong>
+              <span class="type-meta" *ngIf="getSelectedTypeBalance()">
+                Pozostało {{ getAvailableDays() }} dni (wykorzystano {{ getUsedDays() }} z {{ getTotalDays() }})
+              </span>
+            </div>
+          </div>
+
+          <div class="balance-loading" *ngIf="loadingBalances">
+            <small>Ładowanie informacji o limitach...</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-header compact">
+          <h2>Okres urlopu</h2>
+          <span class="card-hint">Wpisz zakres dat lub kliknij wybrane dni w kalendarzu.</span>
+        </header>
+
+        <div class="field-grid">
+          <div class="field-group">
+            <label for="startDate">Data rozpoczęcia *</label>
+            <input
+              id="startDate"
+              type="date"
+              class="form-control"
+              formControlName="startDate"
+              [min]="minDate"
+              [class.error]="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
+            <div class="error-message" *ngIf="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
+              <small>Data rozpoczęcia jest wymagana</small>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="endDate">Data zakończenia *</label>
+            <input
+              id="endDate"
+              type="date"
+              class="form-control"
+              formControlName="endDate"
+              [min]="leaveForm.get('startDate')?.value || minDate"
+              [class.error]="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
+            <div class="error-message" *ngIf="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
+              <small *ngIf="leaveForm.get('endDate')?.errors?.['required']">Data zakończenia jest wymagana</small>
+              <small *ngIf="leaveForm.get('endDate')?.errors?.['dateRange']">Data zakończenia nie może być wcześniejsza niż data rozpoczęcia</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-picks">
+          <div class="quick-picks-header">
+            <h3 class="quick-picks-title">Szybkie wybory</h3>
+            <button
+              type="button"
+              class="btn-clear-dates"
+              (click)="clearSelectedDates()"
+              *ngIf="leaveForm.get('startDate')?.value || leaveForm.get('endDate')?.value">
+              Wyczyść daty
+            </button>
+          </div>
+          <div class="quick-picks-actions">
+            <button type="button" class="btn-quick" (click)="setDatesFromToday(1)">1 dzień</button>
+            <button type="button" class="btn-quick" (click)="setDatesFromToday(3)">3 dni</button>
+            <button type="button" class="btn-quick" (click)="setDatesFromToday(7)">1 tydzień</button>
+            <button type="button" class="btn-quick" (click)="setDatesFromToday(14)">2 tygodnie</button>
+          </div>
+        </div>
+
+        <div class="date-preview" *ngIf="leaveForm.get('startDate')?.value && leaveForm.get('endDate')?.value">
+          <div class="date-preview-row">
+            <span class="date-preview-label">Zakres</span>
+            <span class="date-preview-value">{{ formatDateRange() }}</span>
+          </div>
+          <div class="date-preview-row">
+            <span class="date-preview-label">Liczba dni roboczych</span>
+            <span class="date-preview-value">{{ getWorkingDays() }}</span>
+          </div>
+          <div class="date-preview-row">
+            <span class="date-preview-label">Weekend w zakresie</span>
+            <span class="date-preview-value">{{ includesWeekends() ? 'Tak' : 'Nie' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-header compact">
+          <h2>Dodatkowe informacje</h2>
+          <span class="card-hint">Opcjonalne dane ułatwiają organizację zastępstwa.</span>
+        </header>
+
+        <div class="field-group">
+          <label for="title">Tytuł wniosku</label>
+          <input
+            id="title"
+            type="text"
+            class="form-control"
+            formControlName="title"
+            placeholder="np. Urlop wypoczynkowy - wakacje"
+            maxlength="100">
+          <small class="help-text">Opcjonalny krótki tytuł opisujący wniosek</small>
+        </div>
+
+        <div class="field-group">
+          <label for="description">Opis / uzasadnienie</label>
+          <textarea
+            id="description"
+            class="form-control textarea"
+            formControlName="description"
+            rows="4"
+            placeholder="Opcjonalny opis powodu urlopu..."
+            maxlength="500"></textarea>
+          <small class="help-text">Dodatkowe informacje dla przełożonego (opcjonalne)</small>
+        </div>
+
+        <div class="field-group">
+          <label for="handoverNotes">Uwagi o przekazaniu obowiązków</label>
+          <textarea
+            id="handoverNotes"
+            class="form-control textarea"
+            formControlName="handoverNotes"
+            rows="3"
+            placeholder="Informacje o przekazaniu zadań, kontaktach zastępczych..."
+            maxlength="500"></textarea>
+          <small class="help-text">Wskaż kto przejmie zadania lub jak można się z Tobą skontaktować</small>
+        </div>
+
+        <div class="field-group" *ngIf="employees.length > 0">
+          <label for="substituteUserId">Osoba zastępująca</label>
+          <select
+            id="substituteUserId"
+            class="form-control"
+            formControlName="substituteUserId">
+            <option value="">Wybierz osobę zastępującą (opcjonalne)</option>
+            <option
+              *ngFor="let employee of employees"
+              [value]="employee.id"
+              [disabled]="employee.id === currentUserId">
+              {{ employee.firstName }} {{ employee.lastName }} ({{ employee.username }})
+            </option>
+          </select>
+          <small class="help-text">Osoba, która będzie realizowała Twoje zadania podczas urlopu</small>
+        </div>
+      </section>
+
+      <section class="card form-actions-card">
+        <div class="form-actions">
+          <button type="button" class="btn-ghost" (click)="resetForm()">Wyczyść</button>
+          <button type="button" class="btn-secondary" (click)="goBack()">Anuluj</button>
+          <button type="submit" class="btn-primary" [disabled]="leaveForm.invalid || submitting">
+            <span *ngIf="submitting">Wysyłanie...</span>
+            <span *ngIf="!submitting">Złóż wniosek urlopowy</span>
+          </button>
+        </div>
+      </section>
+    </form>
+
+    <aside class="sidebar">
+      <section class="card calendar-card">
+        <div class="calendar-header">
+          <div>
+            <h2>Kalendarz urlopów</h2>
+            <p>Kliknij dzień, aby ustawić początek lub koniec urlopu.</p>
+          </div>
+          <div class="calendar-controls">
+            <button type="button" class="btn-nav" (click)="previousMonth()">‹</button>
+            <span class="current-month">{{ getMonthYearText() }}</span>
+            <button type="button" class="btn-nav" (click)="nextMonth()">›</button>
+          </div>
+        </div>
+
+        <div class="calendar-body">
+          <div *ngIf="leavesLoading" class="calendar-state">Ładuję urlopy dla wybranego miesiąca...</div>
+          <div *ngIf="!leavesLoading && leavesError" class="calendar-state calendar-state-error">{{ leavesError }}</div>
+          <div class="calendar-grid">
+            <div class="calendar-header-row">
+              <div class="calendar-day-header" *ngFor="let day of weekDays">{{ day }}</div>
+            </div>
+            <div class="calendar-days">
+              <div
+                *ngFor="let day of calendarDays"
+                class="calendar-day"
+                [class.other-month]="!day.isCurrentMonth"
+                [class.today]="day.isToday"
+                [class.selected]="day.isSelected"
+                [class.range-start]="day.isRangeStart"
+                [class.range-end]="day.isRangeEnd"
+                [class.in-range]="day.isInRange"
+                [class.has-leave]="day.hasLeave"
+                [class.weekend]="day.isWeekend"
+                (click)="selectDate(day)">
+                <span class="day-number">{{ day.dayNumber }}</span>
+                <div class="day-leaves" *ngIf="day.leaves && day.leaves.length">
+                  <div
+                    class="leave-indicator"
+                    *ngFor="let leave of day.leaves"
+                    [style.background-color]="getLeaveTypeColor(leave.leaveType)"
+                    [title]="leave.userName + ' - ' + getLeaveTypeLabel(leave.leaveType)">
+                    {{ leave.userName.charAt(0) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-legend">
+          <h3>Legenda</h3>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="legend-color today-color"></span>
+              <span>Dziś</span>
+            </li>
+            <li class="legend-item">
+              <span class="legend-color selected-color"></span>
+              <span>Wybrane daty</span>
+            </li>
+            <li class="legend-item">
+              <span class="legend-color in-range-color"></span>
+              <span>Zakres urlopu</span>
+            </li>
+            <li class="legend-item">
+              <span class="legend-color has-leave-color"></span>
+              <span>Urlopy współpracowników</span>
+            </li>
+            <li class="legend-item">
+              <span class="legend-color weekend-color"></span>
+              <span>Weekend</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card summary-card">
+        <h2>Podsumowanie</h2>
+        <ul class="summary-list">
+          <li class="summary-row">
+            <span class="summary-label">Typ urlopu</span>
+            <span class="summary-value">{{ getSelectedTypeLabel() || 'Nie wybrano' }}</span>
+          </li>
+          <li class="summary-row">
+            <span class="summary-label">Zakres dat</span>
+            <span class="summary-value">
+              {{ leaveForm.get('startDate')?.value && leaveForm.get('endDate')?.value ? formatDateRange() : 'Nie wybrano' }}
+            </span>
+          </li>
+          <li class="summary-row">
+            <span class="summary-label">Dni robocze</span>
+            <span class="summary-value">{{ getWorkingDays() > 0 ? getWorkingDays() : '--' }}</span>
+          </li>
+          <li class="summary-row" *ngIf="leaveForm.get('startDate')?.value && leaveForm.get('endDate')?.value">
+            <span class="summary-label">Weekend w zakresie</span>
+            <span class="summary-value">{{ includesWeekends() ? 'Tak' : 'Nie' }}</span>
+          </li>
+          <li class="summary-row">
+            <span class="summary-label">Zastępstwo</span>
+            <span class="summary-value">{{ selectedSubstituteName() }}</span>
+          </li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>

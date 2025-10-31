@@ -266,7 +266,7 @@ import {
   styles: [`
     .leave-requests-list {
       padding: 2rem;
-      max-width: 1400px;
+      max-width: var(--page-max-width, 1200px);
       margin: 0 auto;
     }
 

@@ -1,0 +1,124 @@
+<div class="annex-details">
+  <app-back-button label="Powrót" />
+
+  @if (loading()) {
+    <div class="state state-loading">Ładowanie szczegółów aneksu…</div>
+  } @else if (error()) {
+    <div class="state state-error">{{ error() }}</div>
+  } @else {
+    <header class="details-header">
+      <div>
+        <h1>Aneks ewidencji #{{ annex()?.id }}</h1>
+        <p>Powiązany z ewidencją okresu {{ record()?.periodDisplay }}.</p>
+      </div>
+      <div class="status-chip" [class]="statusClass(annex()!.status)">
+        {{ statusLabel(annex()!.status) }}
+      </div>
+    </header>
+
+    <section class="summary">
+      <div class="summary-card">
+        <span class="label">Pracownik</span>
+        <span class="value">{{ employeeName(record()?.userId) }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Okres ewidencji</span>
+        <span class="value">{{ record()?.periodDisplay }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Planowane godziny</span>
+        <span class="value">{{ record()?.scheduledHours | number:'1.0-2' }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Status ewidencji</span>
+        <span class="value">{{ recordStatusLabel(record()?.status ?? null) }}</span>
+      </div>
+    </section>
+
+    <section class="annex-data">
+      <div class="data-grid">
+        <div>
+          <span class="label">Data korekty</span>
+          <span class="value">{{ annex()?.correctionDate }}</span>
+        </div>
+        <div>
+          <span class="label">Skorygowane godziny</span>
+          <span class="value">{{ annex()?.correctedHours | number:'1.2-2' }}</span>
+        </div>
+        <div>
+          <span class="label">Utworzył</span>
+          <span class="value">{{ employeeName(annex()?.createdBy) }}</span>
+          <small>{{ annex()?.createdAt | date:'medium' }}</small>
+        </div>
+        <div>
+          <span class="label">Zatwierdził</span>
+          @if (annex()?.approvedBy) {
+            <span class="value">{{ employeeName(annex()?.approvedBy) }}</span>
+            <small>{{ annex()?.approvedAt | date:'medium' }}</small>
+          } @else {
+            <span class="value muted">Oczekuje na decyzję</span>
+          }
+        </div>
+      </div>
+      <div class="reason">
+        <span class="label">Uzasadnienie</span>
+        <p>{{ annex()?.reason }}</p>
+      </div>
+    </section>
+
+  @if (canModerate() && annex()?.status === WorkTimeRecordAnnexStatus.WAITING) {
+      <section class="moderation">
+        <div class="moderation-header">
+          <h2>Decyzja w sprawie aneksu</h2>
+          <p>Masz uprawnienia do zatwierdzenia lub odrzucenia aneksu pracownika.</p>
+        </div>
+
+        @if (actionError()) {
+          <div class="alert alert-error">{{ actionError() }}</div>
+        }
+
+        @if (actionSuccess()) {
+          <div class="alert alert-success">{{ actionSuccess() }}</div>
+        }
+
+        <div class="moderation-actions">
+          <button type="button" class="btn btn-primary" (click)="approveAnnex()" [disabled]="actionLoading()">
+            Zatwierdź aneks
+          </button>
+          <button type="button" class="btn btn-danger" (click)="toggleRejectForm()" [disabled]="actionLoading()">
+            Odrzuć aneks
+          </button>
+        </div>
+
+        @if (showRejectForm()) {
+          <form class="reject-form" (ngSubmit)="submitRejection()">
+            <label for="reject-reason">Powód odrzucenia</label>
+            <textarea
+              id="reject-reason"
+              [ngModel]="rejectReason()"
+              (ngModelChange)="onRejectReasonChange($event)"
+              rows="4"
+              placeholder="Opisz powód odrzucenia aneksu (min. 10 znaków)"
+              required
+              minlength="10"
+            ></textarea>
+            <div class="reject-actions">
+              <button type="button" class="btn btn-secondary" (click)="toggleRejectForm()" [disabled]="actionLoading()">
+                Anuluj
+              </button>
+              <button type="submit" class="btn btn-danger" [disabled]="actionLoading()">
+                Potwierdź odrzucenie
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    }
+
+    <footer class="actions">
+      <button type="button" class="link-btn" (click)="openRecord()">
+        Otwórz ewidencję pracownika
+      </button>
+    </footer>
+  }
+</div>

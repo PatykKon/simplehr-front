@@ -6,25 +6,41 @@
   </div>
 
   <div class="filters">
-    <label *ngIf="canSeeCompany()">
-      <input type="checkbox" [ngModel]="onlyMine()" (ngModelChange)="onlyMine.set($event); onOnlyMineChange()" />
-      Tylko moje
+    <label class="toggle" *ngIf="canSeeCompany()">
+      <input type="checkbox" [ngModel]="onlyMine()" (ngModelChange)="toggleOnlyMine($event)" />
+      <span>Tylko moje ewidencje</span>
     </label>
 
     <label>
-      Rok:
-      <input type="number" min="2000" max="2100" [ngModel]="yearFilter()" (ngModelChange)="yearFilter.set(+$event); onPeriodChange()" style="width: 6.5rem;" />
+      <span>Rok</span>
+      <input type="number" min="2000" max="2100" [ngModel]="yearFilter()" (ngModelChange)="yearFilter.set(+$event); onPeriodChange()" />
     </label>
+
     <label>
-      Miesiąc:
+      <span>Miesiąc</span>
       <select [ngModel]="monthFilter()" (ngModelChange)="monthFilter.set(+$event); onPeriodChange()">
         <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
       </select>
     </label>
 
     <label>
-      Imię i nazwisko:
-      <input type="text" placeholder="Filtruj po nazwisku" [disabled]="onlyMine()" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" />
+      <span>Imię i nazwisko</span>
+      <input type="text" placeholder="Filtruj po nazwisku" [ngModel]="nameFilter()" (ngModelChange)="onNameChange($event)" />
+    </label>
+
+    <label *ngIf="isCompanyView()">
+      <span>Status</span>
+      <select [ngModel]="statusFilter()" (ngModelChange)="onStatusChange($event)">
+        <option value="ALL">Wszystkie</option>
+        <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label *ngIf="isCompanyView()">
+      <span>Rozmiar strony</span>
+      <select [ngModel]="pageSize()" (ngModelChange)="changePageSize(+$event)">
+        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+      </select>
     </label>
   </div>
 
@@ -62,5 +78,10 @@
         </tr>
       </tbody>
     </table>
+    <div class="pagination" *ngIf="isCompanyView() && totalPages() > 0">
+      <button (click)="previousPage()" [disabled]="page() === 0">Poprzednia</button>
+      <span>Wyświetlam {{ pageStart() }}-{{ pageEnd() }} z {{ totalElements() }}</span>
+      <button (click)="nextPage()" [disabled]="page() >= totalPages() - 1">Następna</button>
+    </div>
   </div>
 </div>

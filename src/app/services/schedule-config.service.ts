@@ -1,18 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable, map, tap } from 'rxjs';
-import { ScheduleConfig, DayPreview, WeeklyRotationConfig, WeeklyRotationShift, CycleWorkOffConfig, FixedHoursConfig, ScheduleConfigDto, ShiftPatternDto, PatternBlockDto } from '../models/schedule-config.models';
+import { Observable, map, tap, of } from 'rxjs';
+import { ScheduleConfig, DayPreview, WeeklyRotationConfig, WeeklyRotationShift, CycleWorkOffConfig, FixedHoursConfig, ScheduleConfigDto, ShiftPatternDto, PatternBlockDto, ApprovalSettings } from '../models/schedule-config.models';
 
 const STORAGE_KEY = 'scheduleConfigs';
+const APPROVAL_STORAGE_KEY = 'scheduleApprovalSettings';
 
 @Injectable({ providedIn: 'root' })
 export class ScheduleConfigService {
   private configs: ScheduleConfig[] = [];
   private readonly API_URL = `${environment.apiUrl}/api/schedule-configs`;
+  private approvalSettings: Record<string, ApprovalSettings> = {};
   constructor(private http: HttpClient) {
     // try to load from backend initially; fallback to local storage if offline
     this.load();
+    this.loadApprovals();
   }
 
   getAll(): ScheduleConfig[] { return [...this.configs]; }
@@ -44,6 +47,7 @@ export class ScheduleConfigService {
       tap(() => {
         this.configs = this.configs.filter(c => c.id !== id);
         this.persist();
+        this.deleteApprovalSettings(id);
       })
     );
   }
@@ -65,6 +69,49 @@ export class ScheduleConfigService {
 
   private persist(): void {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.configs)); } catch { /* ignore */ }
+  }
+
+  // Approval settings (local persistence only for now)
+  private loadApprovals(): void {
+    try {
+      const raw = localStorage.getItem(APPROVAL_STORAGE_KEY);
+      if (raw) this.approvalSettings = JSON.parse(raw);
+    } catch { this.approvalSettings = {}; }
+  }
+  private persistApprovals(): void {
+    try { localStorage.setItem(APPROVAL_STORAGE_KEY, JSON.stringify(this.approvalSettings)); } catch { /* ignore */ }
+  }
+  getApprovalSettings(configId: string): ApprovalSettings {
+    const def: ApprovalSettings = { requiresApproval: false, approvalSteps: 1, approvers: [] };
+    const s = this.approvalSettings[configId];
+    if (!s) return def;
+    return {
+      requiresApproval: !!s.requiresApproval,
+      approvalSteps: Math.max(1, Math.min(10, Number((s as any).approvalSteps || 1))),
+      approvers: Array.isArray((s as any).approvers) ? (s as any).approvers : []
+    };
+  }
+  saveApprovalSettings(configId: string, settings: ApprovalSettings): Observable<ApprovalSettings> {
+    const sanitized: ApprovalSettings = {
+      requiresApproval: !!settings.requiresApproval,
+      approvalSteps: Math.max(1, Math.min(10, Number(settings.approvalSteps || 1))),
+      approvers: (settings.approvers || []).map(a => ({
+        id: Number(a.id),
+        username: String(a.username || ''),
+        first_name: a.first_name ?? null,
+        last_name: a.last_name ?? null,
+        email: String(a.email || '')
+      }))
+    };
+    this.approvalSettings[configId] = sanitized;
+    this.persistApprovals();
+    return of(sanitized);
+  }
+  deleteApprovalSettings(configId: string): void {
+    if (this.approvalSettings[configId]) {
+      delete this.approvalSettings[configId];
+      this.persistApprovals();
+    }
   }
 
   // Preview generation API

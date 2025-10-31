@@ -34,6 +34,10 @@ import {
             <span class="icon">➕</span>
             Nowy wniosek
           </button>
+          <button class="btn btn-ghost" (click)="goToSearch()" title="Wyszukiwarka wniosków">
+            <span class="icon">🔎</span>
+            Wyszukiwarka
+          </button>
         </div>
       </div>
 
@@ -305,7 +309,7 @@ import {
   `,
   styles: [`
     .leave-requests-container {
-      max-width: 1200px;
+      max-width: var(--page-max-width, 1200px);
       margin: 0 auto;
       padding: 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1073,6 +1077,10 @@ export class LeaveRequestsListComponent implements OnInit {
   }
   createNewRequest(): void {
     this.router.navigate(['/leave-requests/create']);
+  }
+
+  goToSearch(): void {
+    this.router.navigate(['/leave-requests/search']);
   }
 
   viewRequest(id: number): void {

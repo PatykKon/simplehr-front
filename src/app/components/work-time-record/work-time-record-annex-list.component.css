@@ -1,0 +1,227 @@
+.annex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 20px;
+  max-width: var(--page-max-width, 1200px);
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #111827;
+}
+
+.page-header p {
+  margin: 0.35rem 0 0;
+  color: #4b5563;
+}
+
+.btn-refresh {
+  height: fit-content;
+  padding: 0.45rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #1f2937;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-refresh:not(:disabled):hover {
+  background: #e5e7eb;
+}
+
+/* Filters use unified global styles in styles.css (.filters, .filter-group) */
+
+.filter-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-clear {
+  border: 1px solid #d1d5db;
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  background: #fff;
+  color: #1f2937;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-clear:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-clear:not(:disabled):hover {
+  background: #f3f4f6;
+}
+
+/* Component-specific buttons remain here */
+
+.content {
+  background: #fff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+.state {
+  padding: 2rem;
+  text-align: center;
+  border-radius: 0.85rem;
+  font-size: 1rem;
+}
+
+.state-loading {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.state-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.state-empty {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.annex-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+
+.annex-table thead th {
+  text-align: left;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.annex-table tbody td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.95rem;
+  color: #1f2937;
+  vertical-align: top;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-annex-created {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.status-waiting {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-user-accepted {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-supervisor-accepted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-closed {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.actions {
+  text-align: right;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination .page-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pagination button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pagination select {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+}

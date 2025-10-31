@@ -1,5 +1,9 @@
 /* Global Styles for SimpleHR */
 
+:root {
+  --page-max-width: 1200px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -61,3 +65,38 @@ input, textarea, select {
 
 /* Prevent background scroll when modal open */
 body.modal-open { overflow: hidden; }
+
+/* Search/list unified UI baseline */
+.table-wrapper { overflow-x: auto; }
+.app-table { width: 100%; border-collapse: collapse; min-width: 960px; table-layout: fixed; }
+.app-table thead th { text-align: left; padding: .75rem; font-size: .9rem; color: #4b5563; background: #f3f4f6; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 1; }
+.app-table thead th.sortable { cursor: pointer; user-select: none; }
+.app-table thead th.sortable:hover { background: #eef2f7; }
+.app-table tbody tr:nth-child(odd) { background: #fbfdff; }
+.app-table tbody tr:hover { background: #f8fafc; }
+.app-table tbody td { padding: .75rem; border-bottom: 1px solid #f3f4f6; font-size: .95rem; color: #1f2937; vertical-align: top; word-break: break-word; }
+.app-table tbody td.actions { white-space: nowrap; }
+
+.app-pagination { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.app-pagination .page-controls { display: flex; gap: .5rem; align-items: center; }
+.app-pagination button { border: 1px solid #d1d5db; background: #fff; padding: .35rem .6rem; border-radius: .5rem; cursor: pointer; }
+.app-pagination button:disabled { opacity: .6; cursor: default; }
+.app-pagination select { border: 1px solid #d1d5db; background: #fff; padding: .35rem .6rem; border-radius: .5rem; }
+
+/* Common link button and status badge */
+.link-btn { background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; padding: .25rem .4rem; }
+.link-btn:hover { text-decoration: underline; }
+.status { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .65rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+
+/* Unified filters styling */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; background: #f9fafb; padding: 1rem; border-radius: 1rem; border: 1px solid #e5e7eb; }
+.filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: .5rem; }
+.filter-group { display: flex; flex-direction: column; gap: .4rem; font-size: .95rem; color: #374151; }
+.filter-group label { font-weight: 600; }
+/* Place label text above control across all filters */
+.filters .filter-group label { display: grid; gap: .35rem; }
+.filter-group input, .filter-group select { border: 1px solid #d1d5db; border-radius: .65rem; padding: .45rem .75rem; font-size: .95rem; background: #fff; }
+.filter-group.checkbox { flex-direction: row; align-items: center; gap: .6rem; }
+.filter-group.checkbox label { display: flex; align-items: center; gap: .5rem; font-weight: 500; }
+/* Bigger, clearer checkbox in filters */
+.filters input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; }

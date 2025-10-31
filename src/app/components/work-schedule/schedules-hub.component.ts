@@ -36,7 +36,7 @@ import { AuthService } from '../../services/auth.service';
     </div>
   `,
   styles: [`
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .container { max-width: var(--page-max-width, 1200px); margin: 0 auto; padding: 2rem; }
     h1 { font-size: 2rem; margin: 0 0 .5rem; color: #111827; }
     .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }

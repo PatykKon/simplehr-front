@@ -1,0 +1,114 @@
+<div class="admin-employee-search">
+  <div class="page-header">
+    <app-back-button></app-back-button>
+    <h1>Pracownicy — wyszukiwanie</h1>
+  </div>
+
+  <div class="content">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">{{ totalEmployees() ?? '—' }}</div>
+        <div class="stat-label">Wszyscy</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ activeEmployees() ?? '—' }}</div>
+        <div class="stat-label">Aktywni</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label>Imię
+          <input type="text" [ngModel]="firstName()" (ngModelChange)="onFirstNameChange($event)" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Nazwisko
+          <input type="text" [ngModel]="lastName()" (ngModelChange)="onLastNameChange($event)" />
+        </label>
+      </div>
+      
+      <div class="filter-group">
+        <label>Email
+          <input type="text" [ngModel]="email()" (ngModelChange)="onEmailChange($event)" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Rola
+          <select [ngModel]="role()" (ngModelChange)="onRoleChange($event)">
+            <option value="">Wszystkie</option>
+            <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Aktywne konto
+          <select [ngModel]="enabled()" (ngModelChange)="onEnabledChange($event)">
+            <option value="">Wszystkie</option>
+            <option value="true">Tak</option>
+            <option value="false">Nie</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="filter-actions">
+        <button class="link-btn" type="button" (click)="clearFilters()">Wyczyść</button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="state state-loading">Ładowanie…</div>
+    }
+    @if (error()) {
+      <div class="state state-error">{{ error() }}</div>
+    }
+
+    @if (!loading()) {
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th (click)="toggleSort('createdAt')" class="sortable">Utworzono</th>
+          <th (click)="toggleSort('lastName')" class="sortable">Nazwisko</th>
+          <th (click)="toggleSort('firstName')" class="sortable">Imię</th>
+          <th>Username</th>
+          <th (click)="toggleSort('email')" class="sortable">Email</th>
+          <th (click)="toggleSort('enabled')" class="sortable">Status</th>
+          <th>Role</th>
+          <th>Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of items(); track u.user_id) {
+        <tr>
+          <td>{{ formatDate(u.created_at) }}</td>
+          <td>{{ u.last_name || '—' }}</td>
+          <td>{{ u.first_name || '—' }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>
+            <span class="status" [class.status-success]="u.enabled" [class.status-danger]="!u.enabled">{{ u.enabled ? 'Aktywne' : 'Nieaktywne' }}</span>
+          </td>
+          <td>
+            @for (r of u.roles; track r) { <span class="role-chip">{{ r.replace('ROLE_','') }}</span> }
+          </td>
+          <td class="nowrap">
+            <a class="link-btn" [routerLink]="['/admin/employees', u.user_id]">Szczegóły →</a>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    }
+
+    <div class="app-pagination">
+      <button type="button" [disabled]="(data()?.page ?? 0) === 0" (click)="goToPage((data()?.page ?? 0) - 1)">Poprzednia</button>
+      <span>Strona {{ (data()?.page ?? 0) + 1 }} z {{ data()?.total_pages ?? 1 }}</span>
+      <button type="button" [disabled]="(data()?.page ?? 0) + 1 >= (data()?.total_pages ?? 1)" (click)="goToPage((data()?.page ?? 0) + 1)">Następna</button>
+      <select [ngModel]="size()" (ngModelChange)="changeSize($event)">
+        <option [value]="10">10</option>
+        <option [value]="20">20</option>
+        <option [value]="50">50</option>
+      </select>
+    </div>
+  </div>
+</div>

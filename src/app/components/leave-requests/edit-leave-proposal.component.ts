@@ -241,7 +241,7 @@ import {
   `,
   styles: [`
     .edit-leave-proposal {
-      max-width: 800px;
+      max-width: min(var(--page-max-width, 1200px), 800px);
       margin: 0 auto;
       padding: 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

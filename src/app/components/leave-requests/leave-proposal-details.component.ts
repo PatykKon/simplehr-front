@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgFor, NgForOf } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LeaveProposalService } from '../../services/leave-proposal.service';
@@ -33,7 +33,7 @@ interface CalendarDay {
 @Component({
   selector: 'app-leave-proposal-details',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, NgIf, NgFor, NgForOf],
   templateUrl: './leave-proposal-details.component.html',
   styleUrl: './leave-proposal-details.component.css'
 })
@@ -136,6 +136,12 @@ export class LeaveProposalDetailsComponent implements OnInit {
         // Load additional data
         this.loadProposalHistory();
         this.loadLeaveStats();
+        // Align current view month to proposal start date for table calendar
+        if (this.proposal?.startDate) {
+          const safe = this.proposal.startDate.replace(/-/g, '/');
+          const d = new Date(safe);
+          if (!isNaN(d.getTime())) this.currentDate = d;
+        }
         this.generateCalendar();
       },
       error: (error) => {
@@ -277,6 +283,61 @@ export class LeaveProposalDetailsComponent implements OnInit {
   // Days to render in TABLE view: only current month, preserving order
   tableDays(): CalendarDay[] {
     return (this.calendarDays || []).filter(d => d.isCurrentMonth);
+  }
+
+  // Work-time-like month dates for current month (YYYY-MM-DD strings)
+  monthDates(): string[] {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth(); // 0-11
+    const last = new Date(year, month + 1, 0);
+    const daysInMonth = last.getDate();
+    const m = String(month + 1).padStart(2, '0');
+    const res: string[] = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      res.push(`${year}-${m}-${String(d).padStart(2, '0')}`);
+    }
+    return res;
+  }
+
+  isWeekend(dateStr: string | null): boolean {
+    if (!dateStr) return false;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, (m || 1) - 1, d || 1);
+    const dow = dt.getDay(); // 0=Sun..6=Sat
+    return dow === 0 || dow === 6;
+  }
+
+  isInLeaveRange(dateStr: string): boolean {
+    if (!this.proposal) return false;
+    const toDate = (s: string) => {
+      const safe = s.replace(/-/g, '/');
+      const d = new Date(safe);
+      return d;
+    };
+    const d = toDate(dateStr);
+    const start = toDate(this.proposal.startDate);
+    const end = toDate(this.proposal.endDate);
+    if (isNaN(d.getTime()) || isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+    // compare ignoring time
+    d.setHours(0,0,0,0); start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+    return d >= start && d <= end;
+  }
+
+  // Week rows for calendar-like table (7 columns per row)
+  weekRows(): CalendarDay[][] {
+    const rows: CalendarDay[][] = [];
+    const days = this.calendarDays || [];
+    for (let i = 0; i < days.length; i += 7) {
+      rows.push(days.slice(i, i + 7));
+    }
+    return rows;
+  }
+
+  // Labels of selected days (current month only)
+  selectedDaysLabels(): string[] {
+    return (this.calendarDays || [])
+      .filter(d => d.isCurrentMonth && d.isInRange)
+      .map(d => this.formatDayLabel(d.date));
   }
 
   // Approval methods

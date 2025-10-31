@@ -7,8 +7,11 @@ import {
   WorkTimeRecordDetailsResponse,
   WorkTimeRecordHistoryResponse,
   WorkTimeRecordStatus,
+  WorkTimeRecordAnnexResponse,
   RejectWorkTimeRecordRequest,
-  CreateWorkTimeRecordAnnexRequest
+  CreateWorkTimeRecordAnnexRequest,
+  RejectWorkTimeRecordAnnexRequest,
+  WorkTimeRecordPageResponse
 } from '../models/work-time-record.models';
 
 @Injectable({ providedIn: 'root' })
@@ -24,7 +27,8 @@ export class WorkTimeRecordService {
 
   getMyRecords(status?: WorkTimeRecordStatus, year?: number, month?: number): Observable<WorkTimeRecordResponse[]> {
     let params = new HttpParams();
-    if (status) params = params.set('status', status);
+    const statusParam = this.statusToParam(status);
+    if (statusParam) params = params.set('status', statusParam);
     if (year != null) params = params.set('year', String(year));
     if (month != null) params = params.set('month', String(month));
     return this.http.get<WorkTimeRecordResponse[]>(`${this.API_URL}/my`, { params });
@@ -39,10 +43,40 @@ export class WorkTimeRecordService {
 
   getCompanyRecords(status?: WorkTimeRecordStatus, year?: number, month?: number): Observable<WorkTimeRecordResponse[]> {
     let params = new HttpParams();
-    if (status) params = params.set('status', status);
+    const statusParam = this.statusToParam(status);
+    if (statusParam) params = params.set('status', statusParam);
     if (year != null) params = params.set('year', String(year));
     if (month != null) params = params.set('month', String(month));
     return this.http.get<WorkTimeRecordResponse[]>(`${this.API_URL}/company`, { params });
+  }
+
+  getCompanyRecordsPage(options: {
+    year: number;
+    month: number;
+    status?: WorkTimeRecordStatus;
+    page?: number;
+    size?: number;
+    sort?: string;
+  }): Observable<WorkTimeRecordPageResponse> {
+    let params = new HttpParams()
+      .set('year', String(options.year))
+      .set('month', String(options.month));
+
+    const statusParam = this.statusToParam(options.status);
+    if (statusParam) {
+      params = params.set('status', statusParam);
+    }
+    if (options.page != null) {
+      params = params.set('page', String(options.page));
+    }
+    if (options.size != null) {
+      params = params.set('size', String(options.size));
+    }
+    if (options.sort) {
+      params = params.set('sort', options.sort);
+    }
+
+    return this.http.get<WorkTimeRecordPageResponse>(`${this.API_URL}`, { params });
   }
 
   getCompanyPendingRecords(year?: number, month?: number): Observable<WorkTimeRecordResponse[]> {
@@ -71,6 +105,22 @@ export class WorkTimeRecordService {
     return this.http.post<void>(`${this.API_URL}/${id}/annex`, payload);
   }
 
+  getAnnexes(id: number): Observable<WorkTimeRecordAnnexResponse[]> {
+    return this.http.get<WorkTimeRecordAnnexResponse[]>(`${this.API_URL}/${id}/annexes`);
+  }
+
+  getAnnex(id: number, annexId: number): Observable<WorkTimeRecordAnnexResponse> {
+    return this.http.get<WorkTimeRecordAnnexResponse>(`${this.API_URL}/${id}/annexes/${annexId}`);
+  }
+
+  approveAnnex(id: number, annexId: number): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/${id}/annexes/${annexId}/approve`, {});
+  }
+
+  rejectAnnex(id: number, annexId: number, payload: RejectWorkTimeRecordAnnexRequest): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/${id}/annexes/${annexId}/reject`, payload);
+  }
+
   // History
   getRecordHistory(id: number): Observable<WorkTimeRecordHistoryResponse[]> {
     return this.http.get<WorkTimeRecordHistoryResponse[]>(`${this.API_URL}/${id}/history`);
@@ -78,5 +128,16 @@ export class WorkTimeRecordService {
 
   getMyHistory(): Observable<WorkTimeRecordHistoryResponse[]> {
     return this.http.get<WorkTimeRecordHistoryResponse[]>(`${this.API_URL}/my/history`);
+  }
+
+  private statusToParam(status?: WorkTimeRecordStatus): string | undefined {
+    if (status == null) {
+      return undefined;
+    }
+    if (typeof status === 'string') {
+      return status;
+    }
+    const mapped = WorkTimeRecordStatus[status];
+    return mapped ?? undefined;
   }
 }

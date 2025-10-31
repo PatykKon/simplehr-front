@@ -178,7 +178,7 @@ anowak,anna.nowak@firma.pl,haslo456,Anna,Nowak,26,0,10,0</pre>
   styles: [`
     .import-employees {
       padding: 2rem;
-      max-width: 1000px;
+      max-width: min(var(--page-max-width, 1200px), 1000px);
       margin: 0 auto;
     }
 

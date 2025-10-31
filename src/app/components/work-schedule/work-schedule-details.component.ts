@@ -8,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { WorkScheduleHistoryResponse } from '../../models/work-schedule.models';
 import { EmployeeService } from '../../services/employee.service';
 import { LeaveProposalService } from '../../services/leave-proposal.service';
-import { LeaveDay, LEAVE_TYPE_LABELS } from '../../models/leave-proposal.models';
+import { LeaveDay, LEAVE_TYPE_LABELS, LeaveType } from '../../models/leave-proposal.models';
 // FullCalendar (read-only view)
 import { FullCalendarComponent, FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventInput } from '@fullcalendar/core';
@@ -47,6 +47,7 @@ export class WorkScheduleDetailsComponent implements OnInit {
   // Leaves
   employeeLeaves = signal<Record<number, LeaveDay[]>>({});
   leavesLoading = signal(false);
+  holidayDates = signal<Set<string>>(new Set());
   // Employees present in this schedule (for TABLE view)
   employeesInSchedule = computed(() => {
     const s = this.schedule();
@@ -177,6 +178,19 @@ export class WorkScheduleDetailsComponent implements OnInit {
 
   WorkScheduleStatus = WorkScheduleStatus;
 
+  private static readonly LEAVE_TYPE_SHORT_LABELS: Record<LeaveType, string> = {
+    [LeaveType.ANNUAL]: 'UP',
+    [LeaveType.SICK]: 'L4',
+    [LeaveType.UNPAID]: 'UB',
+    [LeaveType.PARENTAL]: 'UR',
+    [LeaveType.MATERNITY]: 'UM',
+    [LeaveType.PATERNITY]: 'UO',
+    [LeaveType.COMPASSIONATE]: 'OK',
+    [LeaveType.STUDY]: 'SZ',
+    [LeaveType.SABBATICAL]: 'SB',
+    [LeaveType.OTHER]: 'IN'
+  };
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -208,6 +222,8 @@ export class WorkScheduleDetailsComponent implements OnInit {
         this.loadCreatorName(s.createdByUserId);
         this.loadEmployeeNames();
         this.loadLeavesForMonth(s.startDate, s.endDate);
+        this.computeHolidaysForSchedule(s.startDate, s.endDate);
+        this.viewMode.set('TABLE');
       },
       error: (err) => {
         console.error('Błąd podczas ładowania grafiku', err);
@@ -342,6 +358,39 @@ export class WorkScheduleDetailsComponent implements OnInit {
     return out;
   }
 
+  getTableEmployees(): Array<{ userId: number; userName: string }> {
+    const list = this.employeesInSchedule();
+    const term = this.tableFilter().toLowerCase().trim() || this.nameFilter().toLowerCase().trim();
+    if (!term) return list;
+    return list.filter(emp => (emp.userName || '').toLowerCase().includes(term));
+  }
+
+  getLeavesFor(userId: number, date: string): LeaveDay[] {
+    const days = this.employeeLeaves()[userId] ?? [];
+    if (!days.length) return [];
+    return days.filter(d => d.date === date);
+  }
+
+  getEmployeeLeavesList(userId: number): LeaveDay[] {
+    const map = this.employeeLeaves() as Record<number, LeaveDay[] | undefined>;
+    return map[userId] ?? [];
+  }
+
+  formatLeaveTypes(leaves: LeaveDay[]): string {
+    if (!leaves.length) return '';
+    const shortCodes = Array.from(new Set(leaves.map(l => this.leaveShortLabel(l.leaveType))));
+    return shortCodes.join(' ');
+  }
+
+  leaveTooltip(leaves: LeaveDay[]): string {
+    if (!leaves.length) return '';
+    const long = Array.from(new Set(leaves.map(l => this.leaveTypeLabel(l.leaveType)))).join(', ');
+    const short = this.formatLeaveTypes(leaves);
+    const label = long && short ? `${short} – ${long}` : (long || short);
+    const range = this.formatLeaveRange(leaves.map(l => l.date));
+    return range ? `Urlop: ${label} (${range})` : `Urlop: ${label}`;
+  }
+
   // Get entry for employee and date (if any) for TABLE view
   getEntryFor(userId: number, date: string): WorkScheduleEntryResponse | undefined {
     const s = this.schedule();
@@ -352,6 +401,10 @@ export class WorkScheduleDetailsComponent implements OnInit {
     return undefined;
   }
 
+  onTableFilterChange(value: string): void {
+    this.tableFilter.set(value);
+  }
+
   // Weekend helpers for TABLE view styling
   isSaturdayDate(date: string): boolean {
     const d = new Date(date + 'T00:00:00');
@@ -360,6 +413,10 @@ export class WorkScheduleDetailsComponent implements OnInit {
   isSundayDate(date: string): boolean {
     const d = new Date(date + 'T00:00:00');
     return d.getDay() === 0;
+  }
+
+  isHolidayDate(date: string): boolean {
+    return this.holidayDates().has(date);
   }
 
   private buildCalendarEvents(s: WorkScheduleDetailsResponse): EventInput[] {
@@ -593,6 +650,73 @@ export class WorkScheduleDetailsComponent implements OnInit {
     return `${y}-${m}-${day}`;
   }
 
+  private computeHolidaysForSchedule(startDate: string, endDate: string): void {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      this.holidayDates.set(new Set());
+      return;
+    }
+    const years = new Set<number>();
+    for (let y = start.getFullYear(); y <= end.getFullYear(); y++) years.add(y);
+    const all = new Set<string>();
+    for (const y of years) {
+      for (const iso of this.computePolishHolidaysForYear(y)) all.add(iso);
+    }
+    const inRange = new Set<string>();
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const iso = this.formatLocalDate(cursor);
+      if (all.has(iso)) inRange.add(iso);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    this.holidayDates.set(inRange);
+  }
+
+  private computePolishHolidaysForYear(year: number): string[] {
+    const res: string[] = [];
+    const push = (m: number, d: number) => res.push(`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    push(1, 1);
+    push(1, 6);
+    push(5, 1);
+    push(5, 3);
+    push(8, 15);
+    push(11, 1);
+    push(11, 11);
+    push(12, 25);
+    push(12, 26);
+    const easter = this.computeEasterDate(year);
+    const addDays = (base: Date, offset: number) => {
+      const copy = new Date(base);
+      copy.setDate(copy.getDate() + offset);
+      return copy;
+    };
+    const toIso = (d: Date) => this.formatLocalDate(d);
+    res.push(toIso(easter));
+    res.push(toIso(addDays(easter, 1)));
+    res.push(toIso(addDays(easter, 49)));
+    res.push(toIso(addDays(easter, 60)));
+    return res;
+  }
+
+  private computeEasterDate(year: number): Date {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+
   // Load leaves for schedule month, filter within range
   private loadLeavesForMonth(startDate: string, endDate: string): void {
     const start = new Date(startDate + 'T00:00:00');
@@ -609,8 +733,13 @@ export class WorkScheduleDetailsComponent implements OnInit {
         }
         this.employeeLeaves.set(map);
         this.leavesLoading.set(false);
+        this.refreshCalendarEvents();
       },
-      error: () => { this.employeeLeaves.set({}); this.leavesLoading.set(false); }
+      error: () => {
+        this.employeeLeaves.set({});
+        this.leavesLoading.set(false);
+        this.refreshCalendarEvents();
+      }
     });
   }
 
@@ -692,5 +821,45 @@ export class WorkScheduleDetailsComponent implements OnInit {
     // Fallback: attempt first 5 chars if looks like HH:mm:..
     if (/^\d{2}:\d{2}:/.test(v)) return v.substring(0,5);
     return v;
+  }
+
+  private leaveShortLabel(type: LeaveDay['leaveType']): string {
+    const key = type as LeaveType;
+    return WorkScheduleDetailsComponent.LEAVE_TYPE_SHORT_LABELS[key] ?? this.leaveTypeLabel(type).slice(0, 2).toUpperCase();
+  }
+
+  private leaveTypeLabel(type: LeaveDay['leaveType']): string {
+    const key = type as keyof typeof LEAVE_TYPE_LABELS;
+    return LEAVE_TYPE_LABELS[key] ?? String(type);
+  }
+
+  private formatLeaveRange(dates?: string[]): string {
+    if (!dates || !dates.length) return '';
+    const sorted = [...dates].sort();
+    const start = this.formatShortDate(sorted[0]);
+    const end = this.formatShortDate(sorted[sorted.length - 1]);
+    return start === end ? start : `${start} – ${end}`;
+  }
+
+  private formatShortDate(iso: string): string {
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return iso;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}`;
+  }
+
+  namePartsFor(userName: string | null | undefined): { first: string; last: string } {
+    const trimmed = (userName ?? '').trim();
+    if (!trimmed) {
+      return { first: '', last: '' };
+    }
+    const parts = trimmed.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return { first: trimmed, last: '' };
+    }
+    const first = parts[0];
+    const last = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    return { first, last };
   }
 }

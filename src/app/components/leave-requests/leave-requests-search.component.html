@@ -1,0 +1,149 @@
+<div class="leave-search">
+  <app-back-button label="Powrót" />
+  <header class="page-header">
+    <div>
+      <h1>Wyszukiwarka wniosków urlopowych</h1>
+      <p>Filtruj i sortuj wnioski z paginacją 0‑based (backend).</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn btn-primary" (click)="load()" [disabled]="loading()">Odśwież</button>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-actions">
+      <button type="button" class="btn" (click)="clearFilters()" [disabled]="loading()">Wyczyść</button>
+    </div>
+
+    @if (canSeeCompany()) {
+      <div class="filter-group checkbox">
+        <label>
+          <input type="checkbox" [checked]="myOnly()" (change)="onMyOnlyToggle($event.target.checked)" />
+          Tylko moje
+        </label>
+      </div>
+    }
+
+    <div class="filter-group">
+      <label for="year">Rok</label>
+      <input id="year" type="number" min="2000" [ngModel]="year()" (ngModelChange)="onYearChange($event)" />
+    </div>
+    <div class="filter-group">
+      <label for="month">Miesiąc</label>
+      <select id="month" [ngModel]="month()" (ngModelChange)="onMonthChange($event)">
+        @for (month of months; track month.value) {
+          <option [ngValue]="month.value">{{ month.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="status">Status</label>
+      <select id="status" [ngModel]="status()" (ngModelChange)="onStatusChange($event)">
+        <option [ngValue]="'ALL'">Wszystkie</option>
+        <option [ngValue]="'SUBMITTED'">Złożony</option>
+        <option [ngValue]="'IN_REVIEW'">W przeglądzie</option>
+        <option [ngValue]="'APPROVED'">Zatwierdzony</option>
+        <option [ngValue]="'REJECTED'">Odrzucony</option>
+        <option [ngValue]="'CANCELLED'">Anulowany</option>
+        <option [ngValue]="'WITHDRAWN'">Wycofany</option>
+        <option [ngValue]="'PENDING'">Oczekujący</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="leave-type">Typ urlopu</label>
+      <select id="leave-type" [ngModel]="leaveType()" (ngModelChange)="onLeaveTypeChange($event)">
+        <option [ngValue]="'ALL'">Wszystkie</option>
+        @for (opt of leaveTypeOptions; track opt.value) {
+          <option [ngValue]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="first-name">Imię</label>
+      <input id="first-name" type="text" placeholder="Imię zawiera…" [ngModel]="firstName()" (ngModelChange)="onFirstNameChange($event)" />
+    </div>
+    <div class="filter-group">
+      <label for="last-name">Nazwisko</label>
+      <input id="last-name" type="text" placeholder="Nazwisko zawiera…" [ngModel]="lastName()" (ngModelChange)="onLastNameChange($event)" />
+    </div>
+  </section>
+
+  <section class="content">
+    @if (loading()) {
+      <div class="state state-loading">Ładowanie…</div>
+    } @else if (error()) {
+      <div class="state state-error">{{ error() }}</div>
+    } @else if (!(data()?.items?.length)) {
+      <div class="state state-empty">Brak wyników</div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="table app-table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="toggleSort('createdAt')">
+                Utworzono
+                <span class="sort-indicator" *ngIf="sortField() === 'createdAt'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th>Pracownik</th>
+              <th class="sortable" (click)="toggleSort('startDate')">
+                Okres
+                <span class="sort-indicator" *ngIf="sortField() === 'startDate'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('leaveType')">
+                Typ urlopu
+                <span class="sort-indicator" *ngIf="sortField() === 'leaveType'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th class="sortable" (click)="toggleSort('status')">
+                Status
+                <span class="sort-indicator" *ngIf="sortField() === 'status'">{{ sortDir() === 'DESC' ? '▼' : '▲' }}</span>
+              </th>
+              <th>Zatwierdził</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.proposal_id) {
+              <tr>
+                <td>{{ formatDate(item.submitted_at || item.created_at) }}</td>
+                <td>{{ item.employee_first_name || '-' }} {{ item.employee_last_name || '' }}</td>
+                <td>{{ periodLabel(item) }}</td>
+                <td>{{ item.leave_type ? (item.leave_type | titlecase) : '-' }}</td>
+                <td><span [class]="statusClass(item.status)">{{ statusLabel(item.status) }}</span></td>
+                <td>
+                  @if (item.status === 'APPROVED' && (item.approved_by || item.approved_by_name || item.approved_at)) {
+                    <div class="meta">
+                      <span>{{ item.approved_by_name || (item.approved_by != null ? ('#' + item.approved_by) : '-') }}</span>
+                      <span>{{ formatDate(item.approved_at) }}</span>
+                    </div>
+                  } @else if (item.processed_by) {
+                    <!-- Fallback for legacy data where only processed_* exist -->
+                    <div class="meta">
+                      <span>{{ item.processed_by_name || ('#' + item.processed_by) }}</span>
+                      <span>{{ formatDate(item.processed_at) }}</span>
+                    </div>
+                  } @else {<span class="meta">-</span>}
+                </td>
+                <td class="actions"><button class="link-btn" (click)="viewDetails(item)">Szczegóły</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination app-pagination">
+        <div class="page-info">Strona {{ (data()?.page ?? 0) + 1 }} z {{ data()?.total_pages ?? 0 }} · {{ data()?.total_elements ?? 0 }} wyników</div>
+        <div class="page-controls">
+          <button (click)="goToPage(0)" [disabled]="(data()?.page ?? 0) === 0">« Pierwsza</button>
+          <button (click)="goToPage((data()?.page ?? 0) - 1)" [disabled]="(data()?.page ?? 0) === 0">‹ Poprzednia</button>
+          <button (click)="goToPage((data()?.page ?? 0) + 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Następna ›</button>
+          <button (click)="goToPage((data()?.total_pages ?? 1) - 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Ostatnia »</button>
+          <select [ngModel]="size()" (ngModelChange)="changeSize($event)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+          </select>
+        </div>
+      </div>
+    }
+  </section>
+</div>

@@ -4,33 +4,37 @@
     <div class="header-content">
       <div class="logo-section">
         <h1>SimpleHR</h1>
-        <span class="company-info" *ngIf="currentUser()">
-          Firma ID: {{ currentUser()?.companyId }}
-        </span>
+        @if (currentUser()) {
+          <span class="company-info">
+            Firma ID: {{ currentUser()?.companyId }}
+          </span>
+        }
       </div>
       
       <div class="user-section">
-        <div class="user-info" *ngIf="currentUser()">
-          <div class="user-avatar">
-            {{ currentUser()?.firstName?.charAt(0) }}{{ currentUser()?.lastName?.charAt(0) }}
-          </div>
-          <div class="user-details">
-            <span class="user-name">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</span>
-            <span class="user-username">{{ currentUser()?.username }}</span>
-            <div class="user-roles">
-              <span class="role-badge" *ngFor="let role of currentUser()?.roles">
-                {{ role }}
-              </span>
+        @if (currentUser()) {
+          <div class="user-info">
+            <div class="user-avatar">
+              {{ currentUser()?.firstName?.charAt(0) }}{{ currentUser()?.lastName?.charAt(0) }}
+            </div>
+            <div class="user-details">
+              <span class="user-name">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</span>
+              <span class="user-username">{{ currentUser()?.username }}</span>
+              <div class="user-roles">
+                @for (role of currentUser()?.roles; track role) {
+                  <span class="role-badge">{{ role }}</span>
+                }
+              </div>
             </div>
           </div>
-        </div>
+        }
+
         <button class="btn btn-outline logout-btn" (click)="logout()">
           Wyloguj
         </button>
       </div>
     </div>
   </header>
-
   <!-- Main Content -->
   <div class="dashboard-main">
     <!-- Sidebar Navigation -->
@@ -57,21 +61,23 @@
             <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/schedules')"
+                (click)="navigateTo('/schedules/search')"
               >
                 <span class="nav-icon">📅</span>
-                Wszystkie grafiki
+                Lista grafików
               </button>
             </li>
-            <li *ngIf="canManageSchedules()">
-              <button 
-                class="nav-item"
-                (click)="navigateTo('/schedules/create')"
-              >
-                <span class="nav-icon">➕</span>
-                Nowy grafik
-              </button>
-            </li>
+            @if (canManageSchedules()) {
+              <li>
+                <button 
+                  class="nav-item"
+                  (click)="navigateTo('/schedules/create')"
+                >
+                  <span class="nav-icon">➕</span>
+                  Nowy grafik
+                </button>
+              </li>
+            }
             <li>
               <button 
                 class="nav-item"
@@ -85,33 +91,59 @@
         </div>
 
         <div class="nav-section">
-          <h3>Ewidencja pracy</h3>
+          <h3>Wnioski urlopowe</h3>
           <ul class="nav-list">
             <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/work-time')"
+                (click)="navigateTo('/leave-requests')"
               >
-                <span class="nav-icon">📅</span>
-                Widok miesiąca
+                <span class="nav-icon">🏖️</span>
+                Moje wnioski
               </button>
             </li>
+            <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/leave-requests/create')"
+              >
+                <span class="nav-icon">➕</span>
+                Nowy wniosek
+              </button>
+            </li>
+    
+              <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/leave-requests/search')"
+              >
+                <span class="nav-icon">📋</span>
+                 Lista wniosków
+              </button>
+            </li>
+          </ul>
+        </div>
+
+
+        <div class="nav-section">
+          <h3>Ewidencja pracy</h3>
+          <ul class="nav-list">
             <li>
               <button 
                 class="nav-item"
                 (click)="navigateTo('/work-time-records')"
               >
                 <span class="nav-icon">🗂️</span>
-                Moja ewidencja
+                List ewidencji
               </button>
             </li>
             <li>
               <button 
                 class="nav-item"
-                (click)="navigateTo('/leave')"
+                (click)="navigateTo('/work-time/annexes')"
               >
                 <span class="nav-icon">📝</span>
-                Wnioski
+                Lista aneksów
               </button>
             </li>
           </ul>
@@ -131,7 +163,15 @@
                   Panel Administratora
                 </button>
               </li>
-
+              <li>
+              <button 
+                class="nav-item"
+                (click)="navigateTo('/account')"
+              >
+                <span class="nav-icon">👤</span>
+                Moje konto
+              </button>
+            </li>
             </ul>
           </div>
       }
@@ -143,42 +183,36 @@
     <main class="dashboard-content">
       <div class="content-header">
         <h2>Witaj w systemie SimpleHR!</h2>
-        <p>Zarządzaj grafikami pracy i wnioskami urlopowymi swojej firmy.</p>
+        <p>Tu znajdziesz kluczowe informacje o swoich grafikach, urlopach i danych.</p>
       </div>
 
       <!-- Quick Stats Cards -->
       <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card clickable" (click)="goToCurrentSchedule()">
           <div class="stat-icon">📅</div>
           <div class="stat-content">
-            <h3>Grafiki</h3>
-            <p>Zarządzaj planami pracy</p>
+            <h3>Aktualny grafik</h3>
+          </div>
+        </div>
+
+        <div class="stat-card clickable" (click)="goToLeaveHub()">
+          <div class="stat-icon">🏖️</div>
+          <div class="stat-content">
+            <h3>Moje urlopy</h3>
           </div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon">🏖️</div>
+          <div class="stat-icon">👥</div>
           <div class="stat-content">
-            <h3>Urlopy</h3>
-            <p>Składaj i zarządzaj wnioskami</p>
+            <h3>Moje dane</h3>
           </div>
         </div>
-
-        @if (canManageSystem()) {
-          <div class="stat-card">
-            <div class="stat-icon">👥</div>
-            <div class="stat-content">
-              <h3>Pracownicy</h3>
-              <p>Zarządzaj zespołem</p>
-            </div>
-          </div>
-        }
 
         <div class="stat-card">
           <div class="stat-icon">📊</div>
           <div class="stat-content">
             <h3>Raporty</h3>
-            <p>Analizuj dane</p>
           </div>
         </div>
       </div>
@@ -186,9 +220,34 @@
       <!-- Quick Actions -->
       <div class="quick-actions">
         <h3>Wnioski do obsługi</h3>
-        <div class="actions-grid">
-            <!-- TODO: Show requests requiring action -->
-        </div>
+        @if (pendingLoading()) {
+          <div class="requests-placeholder">Ładuję wnioski wymagające Twojej uwagi...</div>
+        } @else if (pendingError()) {
+          <div class="requests-error">{{ pendingError() }}</div>
+        } @else if (!pendingRequests().length) {
+          <div class="requests-empty">Brak wniosków wymagających akcji.</div>
+        } @else {
+          <div class="actions-grid pending-grid">
+            @for (req of pendingRequests(); track req.id) {
+              <a class="pending-card" [routerLink]="requestLink(req.id)">
+                <div class="pending-card-header">
+                  <span class="pending-type">{{ leaveTypeLabel(req.leaveType) }}</span>
+                  <span class="pending-status">{{ statusLabel(req.status) }}</span>
+                </div>
+                <div class="pending-dates">
+                  {{ formatDate(req.startDate) }} → {{ formatDate(req.endDate) }}
+                </div>
+                <div class="pending-meta">
+                  @if (canReviewRequests()) {
+                    <span class="pending-owner">{{ req.userName }}</span>
+                  }
+                  <span class="pending-submitted">Złożono: {{ req.submittedAt ? formatDate(req.submittedAt.slice(0, 10)) : '-' }}</span>
+                </div>
+                <div class="pending-footer">Przejdź do szczegółów →</div>
+              </a>
+            }
+          </div>
+        }
       </div>
     </main>
   </div>

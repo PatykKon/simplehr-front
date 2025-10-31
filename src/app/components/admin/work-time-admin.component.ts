@@ -56,11 +56,18 @@ import { BackButtonComponent } from '../shared/back-button.component';
           </table>
           <div class="muted" *ngIf="!historyLoading && !history.length">Brak wpisów</div>
         </div>
+
+        <div class="card" [routerLink]="['/admin/work-time-records/search']">
+          <div class="icon">🔎</div>
+          <h3>Wyszukaj ewidencje</h3>
+          <p>Przeglądaj miesięczne ewidencje czasu pracy z filtrami i sortowaniem.</p>
+          <a class="primary" [routerLink]="['/admin/work-time-records/search']">Otwórz</a>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
+  .container { max-width: var(--page-max-width, 1200px); margin: 0 auto; padding: 2rem; }
     h1 { font-size: 2rem; margin: 0 0 0.5rem; color: #111827; }
     .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }

@@ -69,6 +69,19 @@ export interface DayPreview {
   note?: string;        // extra info, e.g., shift label
 }
 
+// Approval/permissions settings for requests related to a schedule configuration
+export interface ApprovalSettings {
+  requiresApproval: boolean;  // whether a request must be approved
+  approvalSteps: number;      // number of workflow approval steps
+  approvers: Array<{
+    id: number;
+    username: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  }>;
+}
+
 // Backend DTOs (for /api/schedule-configs)
 export type BackendConfigType = 'ROTATIONAL' | 'WEEKLY' | 'FIXED' | 'CUSTOM_PATTERN' | 'HOLIDAY_RULES';
 export type BackendBlockType = 'WORK' | 'OFF';

@@ -7,8 +7,18 @@
 
     @if (selectedPlan()) {
       <div class="plan-banner">
-        @if (selectedPlan() === 'trial') { 
-          <strong>Plan testowy:</strong> 14 dni darmowego korzystania bez karty.
+        @if (selectedPlan()?.toLowerCase() === 'free') { 
+          <strong>Plan Free:</strong> rejestracja tylko na e‑mail i hasło.
+          <div class="plan-info">
+            Na podany e‑mail wyślemy dane do konta testowego oraz link aktywacyjny.
+            Od momentu aktywacji konto będzie ważne przez <strong>134 dni</strong>.
+          </div>
+        } @else if (selectedPlan()?.toLowerCase() === 'trial') { 
+          <strong>Plan testowy:</strong> rejestracja tylko na e‑mail i hasło.
+          <div class="plan-info">
+            Na podany e‑mail wyślemy dane do konta testowego oraz link aktywacyjny.
+            Dostęp testowy jest ważny <strong>14 dni</strong> od aktywacji.
+          </div>
         } @else if (selectedPlan() === 'pro') {
           <strong>Plan Pro:</strong> Pełen dostęp i wsparcie priorytetowe.
         } @else {
@@ -30,67 +40,49 @@
         </div>
       }
 
-      <!-- Dane użytkownika -->
+      <!-- Dane użytkownika (Free: tylko email + hasło) -->
       <div class="form-section">
         <h3>Dane użytkownika</h3>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="firstName">Imię</label>
-            <input
-              type="text"
-              id="firstName"
-              formControlName="firstName"
-              class="form-control"
-              [class.invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
-              placeholder="Wprowadź imię"
-            >
-            @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
-              <div class="field-error">Imię jest wymagane</div>
-            }
+
+  @if ((selectedPlan() || '').toLowerCase() !== 'free' && (selectedPlan() || '').toLowerCase() !== 'trial') {
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">Imię</label>
+              <input type="text" id="firstName" formControlName="firstName" class="form-control"
+                     [class.invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
+                     placeholder="Wprowadź imię">
+              @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
+                <div class="field-error">Imię jest wymagane</div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label for="lastName">Nazwisko</label>
+              <input type="text" id="lastName" formControlName="lastName" class="form-control"
+                     [class.invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
+                     placeholder="Wprowadź nazwisko">
+              @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
+                <div class="field-error">Nazwisko jest wymagane</div>
+              }
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="lastName">Nazwisko</label>
-            <input
-              type="text"
-              id="lastName"
-              formControlName="lastName"
-              class="form-control"
-              [class.invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
-              placeholder="Wprowadź nazwisko"
-            >
-            @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
-              <div class="field-error">Nazwisko jest wymagane</div>
+            <label for="username">Nazwa użytkownika</label>
+            <input type="text" id="username" formControlName="username" class="form-control"
+                   [class.invalid]="registerForm.get('username')?.invalid && registerForm.get('username')?.touched"
+                   placeholder="Wprowadź nazwę użytkownika (3-50 znaków)">
+            @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
+              <div class="field-error">Nazwa użytkownika jest wymagana (3-50 znaków)</div>
             }
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="username">Nazwa użytkownika</label>
-          <input
-            type="text"
-            id="username"
-            formControlName="username"
-            class="form-control"
-            [class.invalid]="registerForm.get('username')?.invalid && registerForm.get('username')?.touched"
-            placeholder="Wprowadź nazwę użytkownika (3-50 znaków)"
-          >
-          @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
-            <div class="field-error">Nazwa użytkownika jest wymagana (3-50 znaków)</div>
-          }
-        </div>
+        }
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            formControlName="email"
-            class="form-control"
-            [class.invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
-            placeholder="Wprowadź adres email"
-          >
+          <input type="email" id="email" formControlName="email" class="form-control"
+                 [class.invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+                 placeholder="Wprowadź adres email">
           @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
             <div class="field-error">Wprowadź prawidłowy adres email</div>
           }
@@ -98,121 +90,80 @@
 
         <div class="form-group">
           <label for="password">Hasło</label>
-          <input
-            type="password"
-            id="password"
-            formControlName="password"
-            class="form-control"
-            [class.invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-            placeholder="Wprowadź hasło (min. 8 znaków)"
-          >
+          <input type="password" id="password" formControlName="password" class="form-control"
+                 [class.invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+                 placeholder="Wprowadź hasło (min. 8 znaków)">
           @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
             <div class="field-error">Hasło musi mieć co najmniej 8 znaków</div>
           }
         </div>
+
+        @if ((selectedPlan() || '').toLowerCase() === 'free' || (selectedPlan() || '').toLowerCase() === 'trial') {
+          <div class="hint-box">
+            Na e‑mail prześlemy dane logowania oraz link aktywacyjny. 
+            @if ((selectedPlan() || '').toLowerCase() === 'free') { Od aktywacji konto jest ważne przez 134 dni. }
+            @if ((selectedPlan() || '').toLowerCase() === 'trial') { Dostęp testowy jest ważny 14 dni od aktywacji. }
+          </div>
+        }
       </div>
 
-      <!-- Dane firmy -->
-      <div class="form-section">
-        <h3>Dane firmy</h3>
-        
-        <div class="form-group">
-          <label for="companyName">Nazwa firmy</label>
-          <input
-            type="text"
-            id="companyName"
-            formControlName="companyName"
-            class="form-control"
-            [class.invalid]="registerForm.get('companyName')?.invalid && registerForm.get('companyName')?.touched"
-            placeholder="Wprowadź nazwę firmy"
-          >
-          @if (registerForm.get('companyName')?.invalid && registerForm.get('companyName')?.touched) {
-            <div class="field-error">Nazwa firmy jest wymagana (2-100 znaków)</div>
-          }
-        </div>
-
-        <div class="form-row">
+  @if ((selectedPlan() || '').toLowerCase() !== 'free' && (selectedPlan() || '').toLowerCase() !== 'trial') {
+        <!-- Dane firmy (nie wymagane dla Free) -->
+        <div class="form-section">
+          <h3>Dane firmy</h3>
+          
           <div class="form-group">
-            <label for="taxId">NIP (opcjonalnie)</label>
-            <input
-              type="text"
-              id="taxId"
-              formControlName="taxId"
-              class="form-control"
-              placeholder="Wprowadź NIP"
-            >
+            <label for="companyName">Nazwa firmy</label>
+            <input type="text" id="companyName" formControlName="companyName" class="form-control"
+                   [class.invalid]="registerForm.get('companyName')?.invalid && registerForm.get('companyName')?.touched"
+                   placeholder="Wprowadź nazwę firmy">
+            @if (registerForm.get('companyName')?.invalid && registerForm.get('companyName')?.touched) {
+              <div class="field-error">Nazwa firmy jest wymagana (2-100 znaków)</div>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taxId">NIP (opcjonalnie)</label>
+              <input type="text" id="taxId" formControlName="taxId" class="form-control" placeholder="Wprowadź NIP">
+            </div>
+
+            <div class="form-group">
+              <label for="companyEmail">Email firmy (opcjonalnie)</label>
+              <input type="email" id="companyEmail" formControlName="companyEmail" class="form-control"
+                     [class.invalid]="registerForm.get('companyEmail')?.invalid && registerForm.get('companyEmail')?.touched"
+                     placeholder="Wprowadź email firmy">
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="companyEmail">Email firmy (opcjonalnie)</label>
-            <input
-              type="email"
-              id="companyEmail"
-              formControlName="companyEmail"
-              class="form-control"
-              [class.invalid]="registerForm.get('companyEmail')?.invalid && registerForm.get('companyEmail')?.touched"
-              placeholder="Wprowadź email firmy"
-            >
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="companyPhone">Telefon firmy (opcjonalnie)</label>
-          <input
-            type="text"
-            id="companyPhone"
-            formControlName="companyPhone"
-            class="form-control"
-            placeholder="Wprowadź telefon firmy"
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="address">Adres (opcjonalnie)</label>
-          <input
-            type="text"
-            id="address"
-            formControlName="address"
-            class="form-control"
-            placeholder="Wprowadź adres"
-          >
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="city">Miasto (opcjonalnie)</label>
-            <input
-              type="text"
-              id="city"
-              formControlName="city"
-              class="form-control"
-              placeholder="Wprowadź miasto"
-            >
+            <label for="companyPhone">Telefon firmy (opcjonalnie)</label>
+            <input type="text" id="companyPhone" formControlName="companyPhone" class="form-control" placeholder="Wprowadź telefon firmy">
           </div>
 
           <div class="form-group">
-            <label for="postalCode">Kod pocztowy (opcjonalnie)</label>
-            <input
-              type="text"
-              id="postalCode"
-              formControlName="postalCode"
-              class="form-control"
-              placeholder="Wprowadź kod pocztowy"
-            >
+            <label for="address">Adres (opcjonalnie)</label>
+            <input type="text" id="address" formControlName="address" class="form-control" placeholder="Wprowadź adres">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city">Miasto (opcjonalnie)</label>
+              <input type="text" id="city" formControlName="city" class="form-control" placeholder="Wprowadź miasto">
+            </div>
+
+            <div class="form-group">
+              <label for="postalCode">Kod pocztowy (opcjonalnie)</label>
+              <input type="text" id="postalCode" formControlName="postalCode" class="form-control" placeholder="Wprowadź kod pocztowy">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="country">Kraj (opcjonalnie)</label>
+            <input type="text" id="country" formControlName="country" class="form-control" placeholder="Wprowadź kraj">
           </div>
         </div>
-
-        <div class="form-group">
-          <label for="country">Kraj (opcjonalnie)</label>
-          <input
-            type="text"
-            id="country"
-            formControlName="country"
-            class="form-control"
-            placeholder="Wprowadź kraj"
-          >
-        </div>
-      </div>
+      }
 
       <button
         type="submit"

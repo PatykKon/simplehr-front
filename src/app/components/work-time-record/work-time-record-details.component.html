@@ -1,104 +1,197 @@
-<div class="container" *ngIf="!loading(); else loadingTpl">
+<div class="page container" *ngIf="!loading(); else loadingTpl">
   <ng-container *ngIf="record() as r; else errorTpl">
-    <div class="header">
-      <button class="back" (click)="router.navigate(['/work-time-records'])">← Wróć</button>
-      <h2>Ewidencja: {{ r.periodDisplay }}</h2>
-      <div class="status">
-        <span class="badge">{{ statusLabel(r.status) }}</span>
+    <div class="page-header">
+      <div class="page-header-left">
+        <button class="back" (click)="router.navigate(['/work-time-records'])">← Wróć</button>
+        <div class="title-block">
+          <p class="eyebrow">Ewidencja czasu pracy</p>
+          <h1>{{ r.periodDisplay }}</h1>
+          <p class="meta" *ngIf="r.updatedAt">Aktualizacja: {{ r.updatedAt | date:'dd.MM.yyyy HH:mm' }}</p>
+        </div>
+      </div>
+      <div class="status-chip" [ngClass]="statusClass(r.status)">
+        {{ statusLabel(r.status) }}
       </div>
     </div>
 
-    <div class="grid">
-      <div class="card wide">
-        <h3>Tabela (miesiąc)</h3>
-        <div class="muted" *ngIf="daysLoading()">Ładowanie dni…</div>
-        <div class="table-wrapper" *ngIf="!daysLoading()">
-          <table class="month-table">
-            <thead>
-              <tr>
-                <th *ngFor="let d of monthDates()">{{ d.slice(-2) }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td *ngFor="let d of monthDates()" [class.weekend]="isWeekend(d)" [title]="dayTooltip(d)" aria-label="{{ dayTooltip(d) }}">
-                  <div class="hours">
-                    {{ dayInfo(d).hours !== null ? (dayInfo(d).hours | number:'1.0-1') + ' h' : '—' }}
-                  </div>
-                  <div class="leave" *ngIf="dayInfo(d).isLeave">🏖️</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="metrics">
+      <div class="metric-card">
+        <span class="metric-label">Zaplanowane godziny</span>
+        <span class="metric-value">{{ r.scheduledHours | number:'1.2-2' }} h</span>
       </div>
-      <div class="card">
-        <h3>Podsumowanie</h3>
-        <ul>
-          <li>Zaplanowane: <strong>{{ r.scheduledHours | number:'1.2-2' }} h</strong></li>
-          <li>Urlopy: <strong>{{ r.leaveHours | number:'1.2-2' }} h</strong></li>
-          <li>Razem: <strong>{{ r.totalHours | number:'1.2-2' }} h</strong></li>
-        </ul>
+      <div class="metric-card">
+        <span class="metric-label">Urlopy</span>
+        <span class="metric-value">{{ r.leaveHours | number:'1.2-2' }} h</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Suma</span>
+        <span class="metric-value">{{ r.totalHours | number:'1.2-2' }} h</span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section class="card month-card layout-full">
+        <div class="card-header">
+          <h3>Widok miesiąca</h3>
+        </div>
+        <ng-container *ngIf="!daysLoading(); else daysLoadingTpl">
+          <div class="month-table-wrapper">
+            <table class="month-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let d of monthDates()">{{ d.slice(-2) }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td *ngFor="let d of monthDates()" [class.weekend]="isWeekend(d)" [title]="dayTooltip(d)" aria-label="{{ dayTooltip(d) }}">
+                    <ng-container *ngIf="dayInfo(d) as info">
+                      <div class="hours">
+                        {{ info.hours !== null ? (info.hours | number:'1.0-1') + ' h' : '—' }}
+                      </div>
+                      <div class="leave" *ngIf="info.isLeave">🏖️</div>
+                      <div class="note" *ngIf="info.note">{{ info.note }}</div>
+                    </ng-container>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+      </section>
+
+      <div class="layout-main">
+        <section class="card annex-card">
+          <div class="card-header">
+            <h3>Aneksy</h3>
+            <button class="link" (click)="toggleAnnexForm()">{{ showAnnexForm() ? 'Zamknij formularz' : 'Dodaj aneks' }}</button>
+          </div>
+          <form *ngIf="showAnnexForm()" (ngSubmit)="submitAnnex()" class="annex-form">
+            <label>Data korekty
+              <input type="date" [(ngModel)]="annex.correctionDate" name="correctionDate" required />
+            </label>
+            <label>Skorygowane godziny
+              <input type="number" [(ngModel)]="annex.correctedHours" name="correctedHours" step="0.25" min="0" max="24" required />
+            </label>
+            <label>Powód
+              <textarea [(ngModel)]="annex.reason" name="reason" required minlength="10"></textarea>
+            </label>
+            <div class="annex-actions">
+              <button type="button" class="ghost" (click)="toggleAnnexForm()">Anuluj</button>
+              <button type="submit" [disabled]="actionLoading()">Zapisz aneks</button>
+            </div>
+          </form>
+
+          <div class="table-wrapper" *ngIf="r.annexes?.length; else noAnnexesTpl">
+            <table class="annexes">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Godziny</th>
+                  <th>Powód</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of r.annexes">
+                  <td>{{ a.correctionDate }}</td>
+                  <td>{{ a.correctedHours }}</td>
+                  <td>{{ a.reason }}</td>
+                  <td>{{ a.status }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
 
-      <div class="card actions">
-        <h3>Akcje</h3>
-        <div class="buttons">
-          <!-- Owner can submit when status is WAITING -->
-          <button *ngIf="canSubmitForApproval()" [disabled]="actionLoading()" (click)="acceptByUser()">� Wyślij do akceptacji</button>
-          <!-- HR can accept/reject when USER_ACCEPTED -->
-          <ng-container *ngIf="canHrDecide()">
-            <button [disabled]="actionLoading()" (click)="acceptBySupervisor()">✅ Akceptuj</button>
-            <button class="danger" [disabled]="actionLoading()" (click)="showRejectModal.set(true)">❌ Odrzuć</button>
+  <aside class="layout-aside">
+        <section class="card actions-card">
+          <h3>Akcje</h3>
+          <div class="buttons" *ngIf="canSubmitForApproval() || canHrDecide(); else noActionsTpl">
+            <button *ngIf="canSubmitForApproval()" [disabled]="actionLoading()" (click)="acceptByUser()">Wyślij do akceptacji</button>
+            <ng-container *ngIf="canHrDecide()">
+              <button class="success" [disabled]="actionLoading()" (click)="acceptBySupervisor()">Akceptuj</button>
+              <button class="danger" [disabled]="actionLoading()" (click)="showRejectModal.set(true)">Odrzuć</button>
+            </ng-container>
+          </div>
+
+          <div class="meta-list">
+            <div class="meta-row">
+              <span>Id ewidencji</span>
+              <span>#{{ r.id }}</span>
+            </div>
+            <div class="meta-row" *ngIf="r.createdAt">
+              <span>Utworzono</span>
+              <span>{{ r.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="r.updatedAt">
+              <span>Aktualizacja</span>
+              <span>{{ r.updatedAt | date:'dd.MM.yyyy HH:mm' }}</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="card history-card layout-full" [class.history-collapsed]="!historyExpanded()">
+        <div class="card-header history-header">
+          <div class="history-title">
+            <h3>Historia zmian</h3>
+            <span class="history-count" *ngIf="!historyLoading() && !historyError()">{{ history().length }} zmian</span>
+          </div>
+          <button type="button" class="history-toggle-btn" (click)="toggleHistory()" [attr.aria-expanded]="historyExpanded()" aria-controls="record-history-panel">
+            {{ historyExpanded() ? 'Zwiń' : 'Rozwiń' }}
+            <span class="history-toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div *ngIf="historyError()" class="history-error">{{ historyError() }}</div>
+        <div *ngIf="historyLoading()" class="history-loading">Ładowanie historii…</div>
+        <div id="record-history-panel" class="history-panel" *ngIf="historyExpanded()">
+          <ng-container *ngIf="!historyLoading() && !historyError()">
+            <p class="muted" *ngIf="history().length === 0">Brak zarejestrowanych zmian dla tej ewidencji.</p>
+            <ul class="history-list" *ngIf="history().length > 0">
+              <li *ngFor="let item of history()" class="history-item">
+                <div class="history-meta">
+                  <span class="history-date">{{ item.changedAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                  <span class="history-user">ID użytkownika: #{{ item.changedBy }}</span>
+                </div>
+                <div class="history-status">
+                  <span class="history-status-pill">{{ statusLabel(item.previousStatus) }}</span>
+                  <span class="history-arrow">→</span>
+                  <span class="history-status-pill">{{ statusLabel(item.newStatus) }}</span>
+                </div>
+                <div class="history-action">{{ item.action }}</div>
+                <p *ngIf="item.description" class="history-description">{{ item.description }}</p>
+              </li>
+            </ul>
+            <a class="link" [routerLink]="['/work-time-records']">Powrót do listy ewidencji</a>
           </ng-container>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>Aneksy</h3>
-        <button class="link" (click)="toggleAnnexForm()">{{ showAnnexForm() ? '–' : '+' }} Dodaj aneks</button>
-        <form *ngIf="showAnnexForm()" (ngSubmit)="submitAnnex()" class="annex-form">
-          <label>Data korekty
-            <input type="date" [(ngModel)]="annex.correctionDate" name="correctionDate" required />
-          </label>
-          <label>Skorygowane godziny
-            <input type="number" [(ngModel)]="annex.correctedHours" name="correctedHours" step="0.25" min="0" max="24" required />
-          </label>
-          <label>Powód
-            <textarea [(ngModel)]="annex.reason" name="reason" required minlength="10"></textarea>
-          </label>
-          <button type="button" (click)="toggleAnnexForm()">Anuluj</button>
-          <button type="submit" [disabled]="actionLoading()">Zapisz aneks</button>
-        </form>
-
-        <table class="annexes" *ngIf="r.annexes?.length">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Godziny</th>
-              <th>Powód</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let a of r.annexes">
-              <td>{{ a.correctionDate }}</td>
-              <td>{{ a.correctedHours }}</td>
-              <td>{{ a.reason }}</td>
-              <td>{{ a.status }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div *ngIf="!r.annexes || !r.annexes.length" class="muted">Brak aneksów</div>
-      </div>
-
-      <div class="card">
-        <h3>Historia</h3>
-        <a [routerLink]="['/work-time-records']">Zobacz wszystkie moje zmiany</a>
-      </div>
+      </section>
     </div>
   </ng-container>
 </div>
+
+<ng-template #loadingTpl>
+  <div class="container loading">Ładowanie...</div>
+</ng-template>
+
+<ng-template #errorTpl>
+  <div class="container error">{{ error() }}</div>
+</ng-template>
+
+<ng-template #daysLoadingTpl>
+  <div class="days-loading">Ładowanie dni…</div>
+</ng-template>
+
+<ng-template #noAnnexesTpl>
+  <div class="muted">Brak aneksów</div>
+</ng-template>
+
+<ng-template #noActionsTpl>
+  <p class="muted">Brak dostępnych akcji dla bieżącego statusu.</p>
+</ng-template>
 
 <!-- Reject modal -->
 <div class="modal-backdrop" *ngIf="showRejectModal()"></div>
@@ -108,16 +201,8 @@
     <p>Podaj powód odrzucenia (min. 10 znaków):</p>
     <textarea [(ngModel)]="rejectReason" placeholder="Powód odrzucenia"></textarea>
     <div class="modal-actions">
-      <button (click)="showRejectModal.set(false)">Anuluj</button>
+      <button class="ghost" (click)="showRejectModal.set(false)">Anuluj</button>
       <button class="danger" (click)="reject()">Odrzuć</button>
     </div>
   </div>
-  </div>
-
-<ng-template #loadingTpl>
-  <div class="container loading">Ładowanie...</div>
-</ng-template>
-
-<ng-template #errorTpl>
-  <div class="container error">{{ error() }}</div>
-</ng-template>
+</div>

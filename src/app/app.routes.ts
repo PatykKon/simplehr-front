@@ -15,6 +15,16 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./components/public/landing.component').then(m => m.LandingComponent)
   },
+  {
+    path: 'account',
+    loadComponent: () => import('./components/account/account-overview.component').then(m => m.AccountOverviewComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'leave-requests/search',
+    loadComponent: () => import('./components/leave-requests/leave-requests-search.component').then(m => m.LeaveRequestsSearchComponent),
+    canActivate: [AuthGuard]
+  },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { 
@@ -31,6 +41,11 @@ export const routes: Routes = [
   {
     path: 'work-time',
     loadComponent: () => import('./components/work-time/work-time-calendar.component').then(m => m.WorkTimeCalendarComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'work-time/annexes',
+    loadComponent: () => import('./components/work-time-record/work-time-record-annex-list.component').then(m => m.WorkTimeRecordAnnexListComponent),
     canActivate: [AuthGuard]
   },
   {
@@ -53,10 +68,20 @@ export const routes: Routes = [
     loadComponent: () => import('./components/work-time-record/work-time-record-details.component').then(m => m.WorkTimeRecordDetailsComponent),
     canActivate: [AuthGuard]
   },
+  {
+    path: 'work-time-records/:id/annexes/:annexId',
+    loadComponent: () => import('./components/work-time-record/work-time-record-annex-details.component').then(m => m.WorkTimeRecordAnnexDetailsComponent),
+    canActivate: [AuthGuard]
+  },
   // Routing dla grafików pracy
   { 
     path: 'schedules', 
     component: WorkScheduleListComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'schedules/search',
+    loadComponent: () => import('./components/work-schedule/work-schedule-search.component').then(m => m.WorkScheduleSearchComponent),
     canActivate: [AuthGuard]
   },
   {
@@ -130,9 +155,9 @@ export const routes: Routes = [
   },
   {
     path: 'admin/employees/list',
-    component: EmployeeListComponent,
+    loadComponent: () => import('./components/admin/admin-employee-search.component').then(m => m.AdminEmployeeSearchComponent),
     canActivate: [AuthGuard, RoleGuard],
-    data: { requiredRoles: ['ADMIN', 'HR'] }
+    data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   {
     path: 'admin/employees/import',
@@ -181,6 +206,12 @@ export const routes: Routes = [
     loadComponent: () => import('./components/admin/work-time-admin.component').then(m => m.WorkTimeAdminComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
+  },
+  {
+    path: 'admin/work-time-records/search',
+    loadComponent: () => import('./components/work-time-record/work-time-record-search.component').then(m => m.WorkTimeRecordSearchComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   { path: '**', redirectTo: '/' }
 ];

@@ -4,7 +4,13 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { WorkTimeRecordService } from '../../services/work-time-record.service';
 import { AuthService } from '../../services/auth.service';
-import { CreateWorkTimeRecordAnnexRequest, RejectWorkTimeRecordRequest, WorkTimeRecordDetailsResponse, WorkTimeRecordStatus } from '../../models/work-time-record.models';
+import {
+  CreateWorkTimeRecordAnnexRequest,
+  RejectWorkTimeRecordRequest,
+  WorkTimeRecordDetailsResponse,
+  WorkTimeRecordHistoryResponse,
+  WorkTimeRecordStatus
+} from '../../models/work-time-record.models';
 import { WorkTimeService } from '../../services/work-time.service';
 import { WorkTimeDayResponse } from '../../models/work-time.models';
 
@@ -21,6 +27,10 @@ export class WorkTimeRecordDetailsComponent implements OnInit {
   error = signal<string | null>(null);
   days = signal<WorkTimeDayResponse[] | null>(null);
   daysLoading = signal(false);
+  history = signal<WorkTimeRecordHistoryResponse[]>([]);
+  historyLoading = signal(false);
+  historyError = signal<string | null>(null);
+  historyExpanded = signal(false);
   // Fast lookup: workDate (YYYY-MM-DD) -> day
   daysByDate = computed(() => {
     const list = this.days() || [];
@@ -67,13 +77,18 @@ export class WorkTimeRecordDetailsComponent implements OnInit {
   canSubmitForApproval(): boolean {
     const rec = this.record();
     if (!rec) return false;
-    // Treat unknown string 'WAITING' as waiting state
-    return this.isOwner(rec) && (rec.status === ("WAITING" as any) || (rec as any).status === 'WAITING');
+    const status = (rec.status as unknown as string) || '';
+    const waitingStates = ['WAITING', 'WAITING_FOR_USER', 'PENDING_USER'];
+    const requiresUser = rec.isPendingUserAction || waitingStates.includes(status);
+    return this.isOwner(rec) && requiresUser;
   }
   canHrDecide(): boolean {
     const rec = this.record();
     if (!rec) return false;
-    return this.canManage() && rec.status === WorkTimeRecordStatus.USER_ACCEPTED;
+  const status = (rec.status as unknown as string) || '';
+  const waitingStates = [WorkTimeRecordStatus.USER_ACCEPTED, 'WAITING_FOR_SUPERVISOR', 'PENDING_SUPERVISOR'];
+    const requiresSupervisor = rec.isPendingSupervisorAction || waitingStates.includes(status);
+    return this.canManage() && requiresSupervisor;
   }
 
   load(id: number): void {
@@ -82,6 +97,9 @@ export class WorkTimeRecordDetailsComponent implements OnInit {
       next: (rec) => {
         this.record.set(rec);
         this.loading.set(false);
+        this.history.set([]);
+        this.historyExpanded.set(false);
+        this.loadHistory(rec);
         // After record loads, fetch month days for that user/period
         if (rec && rec.periodYear && rec.periodMonth && rec.userId != null) {
           const month = String(rec.periodMonth).padStart(2, '0');
@@ -96,11 +114,43 @@ export class WorkTimeRecordDetailsComponent implements OnInit {
     });
   }
 
+  toggleHistory(): void {
+    this.historyExpanded.update((expanded) => !expanded);
+  }
+
   fetchDays(period: string, userId?: number): void {
     this.daysLoading.set(true);
     this.workTime.getDays(period, userId).subscribe({
       next: (list) => { this.days.set(list || []); this.daysLoading.set(false); },
       error: () => { this.days.set([]); this.daysLoading.set(false); }
+    });
+  }
+
+  private loadHistory(rec: WorkTimeRecordDetailsResponse): void {
+    if (!rec?.id) {
+      this.history.set([]);
+      return;
+    }
+
+    const canSeeAll = this.canSeeOthers();
+    this.historyLoading.set(true);
+    this.historyError.set(null);
+
+    const source$ = canSeeAll
+      ? this.service.getRecordHistory(rec.id)
+      : this.service.getMyHistory();
+
+    source$.subscribe({
+      next: (entries) => {
+        const filtered = canSeeAll ? entries : entries.filter(item => item.workTimeRecordId === rec.id);
+        this.history.set(filtered || []);
+        this.historyLoading.set(false);
+      },
+      error: (err) => {
+        console.error(err);
+        this.historyError.set('Nie udało się pobrać historii zmian');
+        this.historyLoading.set(false);
+      }
     });
   }
 
@@ -227,13 +277,51 @@ export class WorkTimeRecordDetailsComponent implements OnInit {
     });
   }
 
-  statusLabel(status: WorkTimeRecordStatus): string {
+  statusLabel(status: WorkTimeRecordStatus | string): string {
     switch (status) {
-      case WorkTimeRecordStatus.DRAFT: return 'Szkic';
+      case WorkTimeRecordStatus.WAITING: return 'Oczekuje na akcję pracownika';
       case WorkTimeRecordStatus.USER_ACCEPTED: return 'Zaakceptowane przez pracownika';
       case WorkTimeRecordStatus.SUPERVISOR_ACCEPTED: return 'Zaakceptowane przez przełożonego';
       case WorkTimeRecordStatus.REJECTED: return 'Odrzucone';
-      default: return status;
+      case WorkTimeRecordStatus.ANNEX_CREATED: return 'Utworzono aneks';
+      case WorkTimeRecordStatus.CLOSED: return 'Zamknięte';
+      case 'USER_ACCEPTED': return 'Zaakceptowane przez pracownika';
+      case 'SUPERVISOR_ACCEPTED': return 'Zaakceptowane przez przełożonego';
+      case 'REJECTED': return 'Odrzucone';
+      case 'ANNEX_CREATED': return 'Utworzono aneks';
+      case 'CLOSED': return 'Zamknięte';
+      case 'WAITING':
+      case 'WAITING_FOR_USER':
+      case 'PENDING_USER':
+        return 'Oczekuje na akcję pracownika';
+      case 'WAITING_FOR_SUPERVISOR':
+      case 'PENDING_SUPERVISOR':
+        return 'Oczekuje na akcję przełożonego';
+      default: return String(status);
+    }
+  }
+
+  statusClass(status: WorkTimeRecordStatus | string): string {
+    switch (status) {
+      case WorkTimeRecordStatus.WAITING: return 'status-waiting-user';
+      case WorkTimeRecordStatus.USER_ACCEPTED: return 'status-user-accepted';
+      case WorkTimeRecordStatus.SUPERVISOR_ACCEPTED: return 'status-supervisor-accepted';
+      case WorkTimeRecordStatus.REJECTED: return 'status-rejected';
+      case WorkTimeRecordStatus.ANNEX_CREATED: return 'status-annex-created';
+      case WorkTimeRecordStatus.CLOSED: return 'status-closed';
+      case 'USER_ACCEPTED': return 'status-user-accepted';
+      case 'SUPERVISOR_ACCEPTED': return 'status-supervisor-accepted';
+      case 'REJECTED': return 'status-rejected';
+      case 'ANNEX_CREATED': return 'status-annex-created';
+      case 'CLOSED': return 'status-closed';
+      case 'WAITING':
+      case 'WAITING_FOR_USER':
+      case 'PENDING_USER':
+        return 'status-waiting-user';
+      case 'WAITING_FOR_SUPERVISOR':
+      case 'PENDING_SUPERVISOR':
+        return 'status-waiting-supervisor';
+      default: return 'status-generic';
     }
   }
 }

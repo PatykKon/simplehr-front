@@ -42,7 +42,7 @@ interface ProposalStats {
   styles: [`
     /* Layout container */
     .page-container {
-      max-width: 1200px;
+      max-width: var(--page-max-width, 1200px);
       margin: 0 auto;
       padding: 12px;
     }

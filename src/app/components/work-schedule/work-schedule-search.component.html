@@ -1,0 +1,100 @@
+<div class="work-schedule-search">
+  <div class="page-header">
+    <app-back-button></app-back-button>
+    <h1>Grafiki pracy — wyszukiwanie</h1>
+  </div>
+
+  <div class="content">
+    <div class="filters">
+      <div class="filter-group">
+        <label>
+          <input type="checkbox" [checked]="myOnly()" (change)="onMyOnlyToggle($any($event.target).checked)" />
+          Tylko moje
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Nazwa
+          <input type="text" [ngModel]="name()" (ngModelChange)="onNameChange($event)" placeholder="np. Grafik lipiec" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Rok
+          <input type="number" [ngModel]="year()" (ngModelChange)="onYearChange($event)" min="2000" max="2100" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Miesiąc
+          <select [ngModel]="month()" (ngModelChange)="onMonthChange($event)">
+            <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Status
+          <select [ngModel]="status()" (ngModelChange)="onStatusChange($event)">
+            <option value="">Wszystkie</option>
+            <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-group" *ngIf="canSeeCompany()">
+        <label>Utworzył (ID)
+          <input type="number" [ngModel]="createdBy() ?? ''" (ngModelChange)="onCreatedByChange($event)" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Utworzono od
+          <input type="date" [ngModel]="createdFrom()" (ngModelChange)="onCreatedFromChange($event)" />
+        </label>
+      </div>
+      <div class="filter-group">
+        <label>Utworzono do
+          <input type="date" [ngModel]="createdTo()" (ngModelChange)="onCreatedToChange($event)" />
+        </label>
+      </div>
+
+      <div class="filter-actions">
+        <button class="link-btn" type="button" (click)="clearFilters()">Wyczyść</button>
+      </div>
+    </div>
+
+    <div *ngIf="loading()" class="state state-loading">Ładowanie…</div>
+    <div *ngIf="error()" class="state state-error">{{ error() }}</div>
+
+    <table class="app-table" *ngIf="!loading()">
+      <thead>
+        <tr>
+          <th (click)="toggleSort('createdAt')" class="sortable">Utworzono</th>
+          <th (click)="toggleSort('name')" class="sortable">Nazwa</th>
+          <th>Okres</th>
+          <th (click)="toggleSort('status')" class="sortable">Status</th>
+          <th>Utworzył</th>
+          <th>Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items()">
+          <td>{{ formatDateYMD(item.created_at) }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.start_date }} – {{ item.end_date }}</td>
+          <td>{{ item.status }}</td>
+          <td>{{ item.created_by_name || (item.created_by != null ? ('#' + item.created_by) : '—') }}</td>
+          <td class="nowrap">
+            <a class="link-btn" [routerLink]="['/schedules', item.schedule_id]">Szczegóły →</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="app-pagination">
+      <button type="button" [disabled]="(data()?.page ?? 0) === 0" (click)="goToPage((data()?.page ?? 0) - 1)">Poprzednia</button>
+      <span>Strona {{ (data()?.page ?? 0) + 1 }} z {{ data()?.total_pages ?? 1 }}</span>
+      <button type="button" [disabled]="(data()?.page ?? 0) + 1 >= (data()?.total_pages ?? 1)" (click)="goToPage((data()?.page ?? 0) + 1)">Następna</button>
+      <select [ngModel]="size()" (ngModelChange)="changeSize($event)">
+        <option [value]="10">10</option>
+        <option [value]="20">20</option>
+        <option [value]="50">50</option>
+      </select>
+    </div>
+  </div>
+</div>

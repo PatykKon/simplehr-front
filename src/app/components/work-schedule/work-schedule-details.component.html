@@ -1,11 +1,12 @@
+          <input type="text" placeholder="Filtruj pracowników" [ngModel]="tableFilter()" (ngModelChange)="onTableFilterChange($event)" style="flex:1; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px;" />
 <div class="ws-details-container">
   <div class="header">
     <button class="btn" (click)="goBack()">← Wróć do listy</button>
     <h1>Szczegóły grafiku</h1>
     <div class="spacer"></div>
     <div class="view-toggle" style="display:flex; gap:4px;">
-      <button class="btn" [class.btn-primary]="viewMode() === 'CALENDAR'" (click)="viewMode.set('CALENDAR')">Kalendarz</button>
-      <button class="btn" [class.btn-primary]="viewMode() === 'TABLE'" (click)="viewMode.set('TABLE')">Tabela</button>
+  <button class="btn" [class.btn-primary]="viewMode() === 'CALENDAR'" (click)="viewMode.set('CALENDAR')">Kalendarz</button>
+  <button class="btn" [class.btn-primary]="viewMode() === 'TABLE'" (click)="viewMode.set('TABLE')">Tabela</button>
     </div>
     @if (schedule()?.status === 'DRAFT' && canManage()) {
       <button class="btn btn-primary" (click)="edit()">Edytuj</button>
@@ -93,35 +94,62 @@
     @if (viewMode() === 'TABLE') {
       <div class="card">
         <h3>Wpisy (tabela – macierz)</h3>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+          <input type="text" placeholder="Filtruj pracowników" [ngModel]="tableFilter()" (ngModelChange)="onTableFilterChange($event)" style="flex:1; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px;" />
+          @if (tableFilter()) {
+            <button class="btn" (click)="onTableFilterChange('')">Wyczyść</button>
+          }
+        </div>
         @let dates = getScheduleDates();
-        <div class="ws-table" style="border:1px solid #e5e7eb; border-radius:6px; overflow:auto;">
+        <div class="ws-table" style="border:1px solid #e5e7eb; border-radius:6px; overflow-x:auto;">
           <table>
             <thead>
               <tr>
                 <th class="emp sticky">Pracownik</th>
                 @for (d of dates; track d.date) {
-                  <th class="day" [class.sat]="isSaturdayDate(d.date)" [class.sun]="isSundayDate(d.date)">{{ d.day }}</th>
+                  <th class="day" [class.sat]="isSaturdayDate(d.date)" [class.sun]="isSundayDate(d.date)" [class.holiday]="isHolidayDate(d.date)">{{ d.day }}</th>
                 }
               </tr>
             </thead>
             <tbody>
-              @for (emp of employeesInSchedule(); track emp.userId) {
+              @for (emp of getTableEmployees(); track emp.userId) {
                 <tr>
                   <td class="emp sticky">
+                    @let nameParts = namePartsFor(emp.userName);
+                    @let firstName = nameParts.first || (emp.userName || '');
+                    @let lastName = nameParts.last;
                     <div class="name-stack">
-                      <div class="first">{{ emp.userName }}</div>
+                      <div class="first">{{ firstName }}</div>
+                      @if (lastName) {
+                        <div class="last">{{ lastName }}</div>
+                      }
                     </div>
                   </td>
                   @for (d of dates; track d.date) {
                     @let entry = getEntryFor(emp.userId, d.date);
-                    <td class="day" [class.sat]="isSaturdayDate(d.date)" [class.sun]="isSundayDate(d.date)">
+                    @let leaves = getLeavesFor(emp.userId, d.date);
+                    <td class="day"
+                      [class.sat]="isSaturdayDate(d.date)"
+                      [class.sun]="isSundayDate(d.date)"
+                      [class.holiday]="isHolidayDate(d.date)"
+                      [class.leave-cell]="leaves.length > 0"
+                      [class.leave-conflict]="leaves.length > 0 && !!entry"
+                      [title]="leaves.length ? leaveTooltip(leaves) : ''"
+                    >
                       @if (entry) {
                         <div class="cell-time">
                           <div class="start">{{ formatHM(entry.startTime) }}</div>
                           <div class="end">{{ formatHM(entry.endTime) }}</div>
                         </div>
-                      } @else {
+                      }
+                      @if (!entry && leaves.length === 0) {
                         <span style="color:#94a3b8;">—</span>
+                      }
+                      @if (leaves.length) {
+                        <div class="cell-leave">
+                          <span class="leave-dot"></span>
+                          {{ formatLeaveTypes(leaves) }}
+                        </div>
                       }
                     </td>
                   }
@@ -164,7 +192,7 @@
                     Zaplanowane: <strong>{{ g.entries.length }}</strong> dni, <strong>{{ g.totalHours | number:'1.0-1' }}</strong> h •
                     Nadg.: <strong>{{ g.overtimeHours | number:'1.0-1' }}</strong> h ({{ g.overtimeDays }} dni)
                   </div>
-                  @let leaves = employeeLeaves()[g.userId];
+                  @let leaves = getEmployeeLeavesList(g.userId);
                   <div class="muted" style="margin-bottom:8px;">
                     Urlopy: <strong>{{ leaves.length }}</strong>
                     @if (leaves.length) {

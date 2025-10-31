@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, computed, signal, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, computed, signal, ViewChild, HostListener, ElementRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -8,7 +8,7 @@ import { LeaveProposalService } from '../../services/leave-proposal.service';
 import { ScheduleConfigService } from '../../services/schedule-config.service';
 import { ScheduleConfig, CycleWorkOffConfig, WeeklyRotationConfig } from '../../models/schedule-config.models';
 import { EmployeeSummaryResponse } from '../../models/employee.models';
-import { LeaveDay } from '../../models/leave-proposal.models';
+import { LeaveDay, LeaveType, LEAVE_TYPE_LABELS } from '../../models/leave-proposal.models';
 import {
   AddWorkScheduleEntryRequest,
   CreateWorkScheduleRequest,
@@ -28,6 +28,28 @@ import plLocale from '@fullcalendar/core/locales/pl';
 // Register plugins
 const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
+const LEAVE_TYPE_SHORT_LABELS: Record<LeaveType, string> = {
+  [LeaveType.ANNUAL]: 'UP',
+  [LeaveType.SICK]: 'L4',
+  [LeaveType.UNPAID]: 'UB',
+  [LeaveType.PARENTAL]: 'UR',
+  [LeaveType.MATERNITY]: 'UM',
+  [LeaveType.PATERNITY]: 'UO',
+  [LeaveType.COMPASSIONATE]: 'OK',
+  [LeaveType.STUDY]: 'SZ',
+  [LeaveType.SABBATICAL]: 'SB',
+  [LeaveType.OTHER]: 'IN'
+};
+
+const computeDefaultYearMonth = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  if (currentMonth === 11) {
+    return { year: now.getFullYear() + 1, month: 1 };
+  }
+  return { year: now.getFullYear(), month: currentMonth + 2 };
+};
+
 interface EmployeeSidebarStats {
   plannedDays: number;
   plannedDates: string[];
@@ -44,7 +66,7 @@ interface EmployeeSidebarStats {
   templateUrl: './work-schedule-create.component.html',
   styleUrls: ['./work-schedule-create.component.css']
 })
-export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
+export class WorkScheduleCreateComponent implements OnInit, OnDestroy, AfterViewInit {
   // Step 1: basic schedule creation
   creating = signal(false);
   createError = signal<string | null>(null);
@@ -79,7 +101,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   // Calendar view options
   mergeRanges = signal<boolean>(true);
   // Switchable view: CALENDAR (FullCalendar), TABLE (matrix)
-  viewMode = signal<'CALENDAR' | 'TABLE'>('CALENDAR');
+  viewMode = signal<'CALENDAR' | 'TABLE'>('TABLE');
 
   // Holidays cache for current schedule month (YYYY-MM-DD strings)
   holidayDates = signal<Set<string>>(new Set());
@@ -87,6 +109,9 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   // Responsive: detect mobile to limit table view to 7 days window
   isMobile = signal<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   tableWeekStart = signal<number>(0); // index into dates array for TABLE mobile view
+  showTableTopScrollbar = signal(false);
+  tableScrollWidth = signal(0);
+  tableTopHasShadow = signal(false);
 
 
   // Quick add hours modal state
@@ -120,14 +145,31 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     { value: 11, label: 'Listopad' },
     { value: 12, label: 'Grudzień' },
   ];
-  uiYear = signal<number>(new Date().getFullYear());
-  uiMonth = signal<number>(new Date().getMonth() + 1);
+  private readonly defaultYearMonth = computeDefaultYearMonth();
+  uiYear = signal<number>(this.defaultYearMonth.year);
+  uiMonth = signal<number>(this.defaultYearMonth.month);
   years = computed<number[]>(() => {
     const cy = new Date().getFullYear();
     const arr: number[] = [];
     for (let y = cy - 2; y <= cy + 3; y++) arr.push(y);
     return arr;
   });
+
+  get monthSelectorValue(): number {
+    return this.uiMonth();
+  }
+
+  set monthSelectorValue(value: number) {
+    this.setUiMonth(value);
+  }
+
+  get yearSelectorValue(): number {
+    return this.uiYear();
+  }
+
+  set yearSelectorValue(value: number) {
+    this.setUiYear(value);
+  }
 
   // Calendar options
   calendarOptions = signal<CalendarOptions>({
@@ -159,6 +201,9 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   });
 
   @ViewChild('calendar') calendarRef?: FullCalendarComponent;
+  @ViewChild('tableMainScroll') tableMainScroll?: ElementRef<HTMLDivElement>;
+  @ViewChild('tableTopScroll') tableTopScroll?: ElementRef<HTMLDivElement>;
+  @ViewChild('scheduleTable') scheduleTable?: ElementRef<HTMLTableElement>;
 
   // Templates (schedule configs)
   configs = signal<ScheduleConfig[]>([]);
@@ -170,6 +215,10 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   templateStartPosition = signal<number>(1);
   templateMaxPositions = signal<number>(1);
 
+  private tableResizeObserver?: ResizeObserver;
+  private tableContainerResizeObserver?: ResizeObserver;
+  private syncingTableScroll = false;
+
   constructor(
     private fb: FormBuilder,
     private employeeService: EmployeeService,
@@ -179,6 +228,10 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute
   ) {}
+
+  ngAfterViewInit(): void {
+    this.setupTableScrollEffect();
+  }
 
   ngOnInit(): void {
     // Use type="month" UX: store chosen month as YYYY-MM and derive start/end
@@ -220,6 +273,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
       // reset or clamp week start when breakpoint changes
       this.clampTableWeekStart();
     }
+    this.updateTableScrollMetrics();
   }
 
   private loadConfigs(): void {
@@ -354,14 +408,14 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.setBodyScrollLocked(false);
+    this.disconnectTableResizeObservers();
   }
 
   // Utils for month handling
   private currentYearMonth(): string {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
+    const { year, month } = this.defaultYearMonth;
+    const m = String(month).padStart(2, '0');
+    return `${year}-${m}`;
   }
 
   onMonthChange(ev: Event): void {
@@ -421,6 +475,104 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     }
   }
 
+  private setupTableScrollEffect(): void {
+    effect(() => {
+      const mode = this.viewMode();
+      const sched = this.schedule();
+      const entries = this.scheduleEntries();
+      const weekStart = this.tableWeekStart();
+      const mobile = this.isMobile();
+      void entries.length;
+      void weekStart;
+      void mobile;
+      if (mode === 'TABLE' && sched) {
+        queueMicrotask(() => this.connectTableResizeObservers());
+      } else {
+        this.resetTableScrollState();
+        this.disconnectTableResizeObservers();
+      }
+    });
+  }
+
+  private connectTableResizeObservers(): void {
+    const table = this.scheduleTable?.nativeElement;
+    const main = this.tableMainScroll?.nativeElement;
+    if (!table || !main) {
+      this.resetTableScrollState();
+      return;
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+      if (!this.tableResizeObserver) {
+        this.tableResizeObserver = new ResizeObserver(() => this.updateTableScrollMetrics());
+      }
+      this.tableResizeObserver.disconnect();
+      this.tableResizeObserver.observe(table);
+
+      if (!this.tableContainerResizeObserver) {
+        this.tableContainerResizeObserver = new ResizeObserver(() => this.updateTableScrollMetrics());
+      }
+      this.tableContainerResizeObserver.disconnect();
+      this.tableContainerResizeObserver.observe(main);
+    }
+    this.updateTableScrollMetrics();
+  }
+
+  private disconnectTableResizeObservers(): void {
+    this.tableResizeObserver?.disconnect();
+    this.tableContainerResizeObserver?.disconnect();
+  }
+
+  private resetTableScrollState(): void {
+    this.showTableTopScrollbar.set(false);
+    this.tableScrollWidth.set(0);
+    this.tableTopHasShadow.set(false);
+  }
+
+  private updateTableScrollMetrics(): void {
+    const table = this.scheduleTable?.nativeElement;
+    const main = this.tableMainScroll?.nativeElement;
+    const top = this.tableTopScroll?.nativeElement;
+    if (!table || !main) {
+      this.resetTableScrollState();
+      return;
+    }
+    const viewportWidth = main.clientWidth;
+    const scrollWidth = table.scrollWidth;
+    const showTop = scrollWidth > viewportWidth + 1;
+    this.tableScrollWidth.set(Math.max(scrollWidth, viewportWidth));
+    this.showTableTopScrollbar.set(showTop);
+    this.tableTopHasShadow.set(main.scrollTop > 0);
+    if (showTop && !top) {
+      setTimeout(() => this.updateTableScrollMetrics(), 0);
+      return;
+    }
+    if (showTop && top && Math.abs(top.scrollLeft - main.scrollLeft) > 1) {
+      this.syncingTableScroll = true;
+      top.scrollLeft = main.scrollLeft;
+      this.syncingTableScroll = false;
+    }
+  }
+
+  onTableScroll(event: Event, origin: 'TOP' | 'MAIN'): void {
+    if (this.syncingTableScroll) {
+      return;
+    }
+    const top = this.tableTopScroll?.nativeElement;
+    const main = this.tableMainScroll?.nativeElement;
+    if (!top || !main) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    this.syncingTableScroll = true;
+    if (origin === 'TOP') {
+      main.scrollLeft = target.scrollLeft;
+    } else {
+      top.scrollLeft = target.scrollLeft;
+      this.tableTopHasShadow.set(main.scrollTop > 0);
+    }
+    this.syncingTableScroll = false;
+  }
+
   private formatLocalDate(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -429,7 +581,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   }
 
   private polishMonthName(m: number): string {
-    const names = ['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+    const names = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
     return names[m - 1] || '';
   }
 
@@ -493,6 +645,8 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     this.workScheduleService.getSchedule(id).subscribe({
       next: (details) => {
         this.initScheduleEditor(details);
+        // Default to table view in edit mode to keep layout stable on wide schedules
+        this.viewMode.set('TABLE');
         // Update month and form fields based on loaded schedule
         const start = new Date(details.startDate + 'T00:00:00');
         const month = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
@@ -548,6 +702,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     // Reset table week window at schedule init
     this.tableWeekStart.set(0);
     this.clampTableWeekStart();
+    queueMicrotask(() => this.updateTableScrollMetrics());
   }
 
   // (list view removed per request)
@@ -625,6 +780,52 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
       if (e.userId === userId && e.workDate === date) return e;
     }
     return undefined;
+  }
+
+  getTableEmployees(): EmployeeSummaryResponse[] {
+    const list = this.filteredEmployees();
+    const term = this.employeeCalendarFilter().toLowerCase().trim();
+    if (!term) return list;
+    return list.filter(emp => {
+      const fullName = `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.toLowerCase().trim();
+      const username = emp.username?.toLowerCase() ?? '';
+      const email = emp.email?.toLowerCase() ?? '';
+      return fullName.includes(term) || username.includes(term) || email.includes(term);
+    });
+  }
+
+  getLeavesFor(userId: number, date: string): LeaveDay[] {
+    const leaves = this.employeeLeaves()[userId] ?? [];
+    if (!leaves.length) {
+      return [];
+    }
+    return leaves.filter((leave) => leave.date === date);
+  }
+
+  formatLeaveTypes(leaves: LeaveDay[]): string {
+    if (!leaves || leaves.length === 0) {
+      return '';
+    }
+  const labels = leaves.map((leave) => this.leaveShortLabel(leave.leaveType));
+  return Array.from(new Set(labels)).join(' ');
+  }
+
+  leaveTooltip(leaves: LeaveDay[]): string {
+    if (!leaves || leaves.length === 0) {
+      return '';
+    }
+    const longLabels = Array.from(new Set(leaves.map((l) => this.leaveTypeLabel(l.leaveType)))).join(', ');
+    const shortLabels = this.formatLeaveTypes(leaves);
+    const label = longLabels && shortLabels
+      ? `${shortLabels} – ${longLabels}`
+      : longLabels || shortLabels;
+    const range = this.formatLeaveRange(leaves.map((l) => l.date));
+    return range ? `Urlop: ${label} (${range})` : `Urlop: ${label}`;
+  }
+
+  hasAnyLeaves(): boolean {
+    const record = this.employeeLeaves();
+    return Object.keys(record).length > 0;
   }
 
   // Table cell click: select employee and open add modal prefilled for date
@@ -953,15 +1154,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     }
     return [...dates]
       .sort()
-      .map((date) => {
-        const d = new Date(date + 'T00:00:00');
-        if (Number.isNaN(d.getTime())) {
-          return date;
-        }
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        return `${day}.${month}`;
-      })
+      .map((date) => this.formatShortDate(date))
       .join(', ');
   }
 
@@ -994,6 +1187,7 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   // Build calendar events with optional merging of ranges
   private buildCalendarEvents(entries: WorkScheduleEntryResponse[]): EventInput[] {
     const list = entries || [];
+    let scheduleEvents: EventInput[] = [];
     if (this.mergeRanges()) {
       const byUser = new Map<number, WorkScheduleEntryResponse[]>();
       for (const e of list) {
@@ -1024,10 +1218,14 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
           } as EventInput);
         }
       }
-      return events;
+      scheduleEvents = events;
+    } else {
+      // Per-day timed events
+      scheduleEvents = list.map(e => this.entryToEvent(e.userId, e.userName, e.workDate, e.startTime, e.endTime));
     }
-    // Per-day timed events
-    return list.map(e => this.entryToEvent(e.userId, e.userName, e.workDate, e.startTime, e.endTime));
+
+    const leaveEvents = this.buildLeaveEventInputs();
+    return [...scheduleEvents, ...leaveEvents];
   }
 
   // Compress consecutive days with same time window per employee
@@ -1059,6 +1257,107 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     return res;
   }
 
+  private buildLeaveEventInputs(): EventInput[] {
+    const record = this.employeeLeaves();
+    if (!record || Object.keys(record).length === 0) {
+      return [];
+    }
+
+    const nameMap = new Map<number, string>();
+    for (const emp of this.employees()) {
+      const fullName = `${emp.firstName} ${emp.lastName}`.trim() || emp.username;
+      nameMap.set(emp.id, fullName);
+    }
+
+    const events: EventInput[] = [];
+    for (const [key, days] of Object.entries(record)) {
+      const userId = Number(key);
+      if (!Number.isFinite(userId) || !Array.isArray(days) || days.length === 0) {
+        continue;
+      }
+      const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+      const segments = this.compressLeaveDays(sorted);
+      const name = nameMap.get(userId) ?? `Pracownik ${userId}`;
+      const initials = this.getInitials(name);
+
+      for (const segment of segments) {
+        const longLabel = this.leaveTypeLabel(segment.leaveType);
+        const shortLabel = this.leaveShortLabel(segment.leaveType);
+        const endExclusive = new Date(segment.endDate + 'T00:00:00');
+        if (!Number.isNaN(endExclusive.getTime())) {
+          endExclusive.setDate(endExclusive.getDate() + 1);
+        }
+        events.push({
+          title: shortLabel || longLabel || `Urlop`,
+          start: segment.startDate,
+          end: this.formatLocalDate(endExclusive),
+          allDay: true,
+          backgroundColor: 'rgba(254, 205, 211, 0.75)',
+          borderColor: '#f87171',
+          textColor: '#9f1239',
+          classNames: ['leave-event', 'leave-code-event'],
+          extendedProps: {
+            userId,
+            userName: name,
+            initials,
+            isLeave: true,
+            leaveType: segment.leaveType,
+            leaveLabel: longLabel,
+            leaveShortLabel: shortLabel,
+            leaveDates: segment.dates,
+            leaveTooltip: `Urlop ${longLabel || shortLabel || ''}`.trim() + (name ? ` – ${name}` : '')
+          }
+        } as EventInput);
+      }
+    }
+
+    return events;
+  }
+
+  private compressLeaveDays(days: LeaveDay[]): Array<{ startDate: string; endDate: string; leaveType: LeaveDay['leaveType']; dates: string[] }> {
+    if (!days || days.length === 0) {
+      return [];
+    }
+    const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+    const groups: Array<{ startDate: string; endDate: string; leaveType: LeaveDay['leaveType']; dates: string[] }> = [];
+
+    const isNextDay = (prev: string, curr: string) => {
+      const prevDate = new Date(prev + 'T00:00:00');
+      const currDate = new Date(curr + 'T00:00:00');
+      if (Number.isNaN(prevDate.getTime()) || Number.isNaN(currDate.getTime())) {
+        return false;
+      }
+      const diff = (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+      return Math.round(diff) === 1;
+    };
+
+    let current = {
+      startDate: sorted[0].date,
+      endDate: sorted[0].date,
+      leaveType: sorted[0].leaveType,
+      dates: [sorted[0].date]
+    };
+
+    for (let i = 1; i < sorted.length; i++) {
+      const day = sorted[i];
+      if (day.leaveType === current.leaveType && isNextDay(current.endDate, day.date)) {
+        current.endDate = day.date;
+        current.dates.push(day.date);
+      } else {
+        groups.push({ ...current });
+        current = {
+          startDate: day.date,
+          endDate: day.date,
+          leaveType: day.leaveType,
+          dates: [day.date]
+        };
+      }
+    }
+
+    groups.push({ ...current });
+    return groups;
+  }
+
   // Recompute and render events according to mergeRanges and filter
   refreshCalendarEvents(): void {
     const current = this.schedule();
@@ -1077,8 +1376,6 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
   private renderEvent(arg: EventContentArg) {
     const p: any = arg.event.extendedProps || {};
     const name = (p.userName && String(p.userName).trim()) || '';
-    const start = this.formatDisplayHM(p.startTime || (arg.event.startStr?.substring(11, 19) ?? ''));
-    const end = this.formatDisplayHM(p.endTime || (arg.event.endStr?.substring(11, 19) ?? ''));
     // Split name: last token as last name, rest as first
     let firstPart = name;
     let lastPart = '';
@@ -1087,6 +1384,16 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
       lastPart = parts.pop() as string;
       firstPart = parts.join(' ');
     }
+    if (p.isLeave) {
+      const shortLabel = p.leaveShortLabel || (p.leaveType ? this.leaveShortLabel(p.leaveType) : 'UP');
+      const longLabel = p.leaveLabel || (p.leaveType ? this.leaveTypeLabel(p.leaveType) : '');
+      const tooltip = p.leaveTooltip || `${longLabel ? `Urlop ${longLabel}` : 'Urlop'}${name ? ` – ${name}` : ''}`;
+      const displayCode = shortLabel || 'UP';
+      const html = `<div class="ws-event leave code-only" title="${tooltip.replace(/"/g, '&quot;')}"><span class="code">${displayCode}</span></div>`;
+      return { html };
+    }
+    const start = this.formatDisplayHM(p.startTime || (arg.event.startStr?.substring(11, 19) ?? ''));
+    const end = this.formatDisplayHM(p.endTime || (arg.event.endStr?.substring(11, 19) ?? ''));
     let timeText = '';
     if (start && end) {
       timeText = `${start}-${end}`;
@@ -1199,11 +1506,13 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
         }
         this.employeeLeaves.set(map);
         this.leavesLoading.set(false);
+        this.refreshCalendarEvents();
       },
       error: (err) => {
         console.error('Nie udało się pobrać informacji o urlopach', err);
         this.employeeLeaves.set({});
         this.leavesLoading.set(false);
+        this.refreshCalendarEvents();
       }
     });
   }
@@ -1237,6 +1546,36 @@ export class WorkScheduleCreateComponent implements OnInit, OnDestroy {
     } else {
       document.body.classList.remove(cls);
     }
+  }
+
+  private leaveTypeLabel(type: LeaveDay['leaveType']): string {
+    const key = type as keyof typeof LEAVE_TYPE_LABELS;
+    return LEAVE_TYPE_LABELS[key] ?? String(type);
+  }
+
+  private leaveShortLabel(type: LeaveDay['leaveType']): string {
+    const key = type as keyof typeof LEAVE_TYPE_SHORT_LABELS;
+    return LEAVE_TYPE_SHORT_LABELS[key] ?? this.leaveTypeLabel(type).slice(0, 2).toUpperCase();
+  }
+
+  private formatShortDate(iso: string): string {
+    const date = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return iso;
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}`;
+  }
+
+  private formatLeaveRange(dates?: string[]): string {
+    if (!dates || dates.length === 0) {
+      return '';
+    }
+    const sorted = [...dates].sort();
+    const start = this.formatShortDate(sorted[0]);
+    const end = this.formatShortDate(sorted[sorted.length - 1]);
+    return start === end ? start : `${start} – ${end}`;
   }
 
   // Normalize time strings to HH:mm (accept HH:mm or HH:mm:ss)

@@ -194,6 +194,21 @@
   margin-bottom: 16px;
 }
 
+.plan-info {
+  margin-top: 6px;
+  color: #1f2937;
+}
+
+.hint-box {
+  margin-top: 8px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #075985;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 640px) {
   .form-row {
     grid-template-columns: 1fr;

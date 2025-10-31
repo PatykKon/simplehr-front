@@ -1,0 +1,139 @@
+<div class="annex-list">
+  <app-back-button label="Powrót" />
+
+  <header class="page-header">
+    <div>
+      <h1>Aneksy ewidencji — wyszukiwarka</h1>
+      <p>Filtruj i sortuj aneksy, z paginacją 0‑based (backend).</p>
+    </div>
+    <button type="button" class="btn-refresh" (click)="load()" [disabled]="loading()">Odśwież</button>
+  </header>
+
+  <section class="filters">
+    <div class="filter-actions">
+      <button type="button" class="btn-clear" (click)="clearFilters()" [disabled]="loading()">
+        Wyczyść filtry
+      </button>
+    </div>
+
+    @if (canSeeCompany()) {
+      <div class="filter-group checkbox">
+        <label>
+          <input type="checkbox" [checked]="myOnly()" (change)="onMyOnlyToggle($event.target.checked)" />
+          Tylko moje aneksy
+        </label>
+      </div>
+    }
+
+    <div class="filter-group">
+      <label for="annex-year">Rok</label>
+      <input id="annex-year" type="number" min="2000" [ngModel]="year()" (ngModelChange)="onYearChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="annex-month">Miesiąc</label>
+      <select id="annex-month" [ngModel]="month()" (ngModelChange)="onMonthChange($event)">
+        <option *ngFor="let month of months" [ngValue]="month.value">{{ month.label }}</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="first-name">Imię</label>
+      <input id="first-name" type="text" placeholder="Imię zawiera…" [ngModel]="firstName()" (ngModelChange)="onFirstNameChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="last-name">Nazwisko</label>
+      <input id="last-name" type="text" placeholder="Nazwisko zawiera…" [ngModel]="lastName()" (ngModelChange)="onLastNameChange($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label for="annex-status">Status</label>
+      <select id="annex-status" [ngModel]="status()" (ngModelChange)="onStatusChange($event)">
+        <option [ngValue]="'ALL'">Wszystkie</option>
+        <option [ngValue]="'PENDING'">Oczekujące</option>
+        <option [ngValue]="'APPROVED'">Zatwierdzone</option>
+        <option [ngValue]="'REJECTED'">Odrzucone</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="content">
+    @if (loading()) {
+      <div class="state state-loading">Ładowanie aneksów…</div>
+    } @else if (error()) {
+      <div class="state state-error">{{ error() }}</div>
+    } @else if (!items().length) {
+      <div class="state state-empty">
+        <h3>Brak wyników</h3>
+        <p>Dostosuj filtry, aby znaleźć interesujące Cię aneksy.</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="annex-table app-table">
+          <thead>
+            <tr>
+              <th (click)="toggleSort('createdAt')" style="cursor:pointer">Utworzono</th>
+              <th>Pracownik</th>
+              <th>Okres</th>
+              <th (click)="toggleSort('correctionDate')" style="cursor:pointer">Data korekty</th>
+              <th>Godziny</th>
+              <th (click)="toggleSort('status')" style="cursor:pointer">Status</th>
+              <th>Utworzył</th>
+              <th>Zatwierdził</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of items()">
+              <td>{{ formatDate(item.created_at) }}</td>
+              <td>{{ item.employee_first_name || '-' }} {{ item.employee_last_name || '' }}</td>
+              <td>{{ periodLabel(item) }}</td>
+              <td>{{ formatDate(item.correction_date) }}</td>
+              <td>{{ item.corrected_hours ?? '-' }}</td>
+              <td>
+                <span [class]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+              </td>
+              <td>
+                <div class="meta">
+                  <span>{{ item.created_by_name || ('#' + item.created_by) }}</span>
+                  <span>{{ formatDate(item.created_at) }}</span>
+                </div>
+              </td>
+              <td>
+                @if (item.approved_by) {
+                  <div class="meta">
+                    <span>{{ item.approved_by_name || ('#' + item.approved_by) }}</span>
+                    <span>{{ formatDate(item.approved_at) }}</span>
+                  </div>
+                } @else {<span class="meta">-</span>}
+              </td>
+              <td class="actions">
+                <button type="button" class="link-btn" (click)="viewDetails(item)" [disabled]="!item.record_id">
+                  Szczegóły
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination app-pagination">
+        <div class="page-info">
+          Strona {{ (data()?.page ?? 0) + 1 }} z {{ data()?.total_pages ?? 0 }} · {{ data()?.total_elements ?? 0 }} wyników
+        </div>
+        <div class="page-controls">
+          <button (click)="goToPage(0)" [disabled]="(data()?.page ?? 0) === 0">« Pierwsza</button>
+          <button (click)="goToPage((data()?.page ?? 0) - 1)" [disabled]="(data()?.page ?? 0) === 0">‹ Poprzednia</button>
+          <button (click)="goToPage((data()?.page ?? 0) + 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Następna ›</button>
+          <button (click)="goToPage((data()?.total_pages ?? 1) - 1)" [disabled]="(data()?.page ?? 0) >= ((data()?.total_pages ?? 1) - 1)">Ostatnia »</button>
+          <select [ngModel]="size()" (ngModelChange)="changeSize($event)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+        </div>
+      </div>
+    }
+  </section>
+</div>
