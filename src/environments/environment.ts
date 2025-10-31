@@ -1,5 +1,4 @@
 export const environment = {
-  production: false,
-  // Base URL backendu bez sufiksu /api, ponieważ ścieżki /api/... są dodawane w serwisach
-  apiUrl: 'http://localhost:8081',
+  production: true,
+  apiUrl: 'https://simplehr-backend-v1.onrender.com',
 }
