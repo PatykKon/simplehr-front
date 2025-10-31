@@ -7,6 +7,7 @@ import { routes } from './app.routes';
 import { AuthService } from './services/auth.service';
 import { NotificationService } from './services/notification.service';
 import { ErrorResponse } from './models/error.models';
+import { TrialService } from './services/trial.service';
 
 // Functional interceptor dla Angular 18+
 export const authInterceptor = (req: any, next: any) => {
@@ -49,6 +50,11 @@ export const errorInterceptor = (req: any, next: any) => {
           else if (status === 409) title = 'Konflikt';
           else if (status >= 500) title = 'Błąd serwera';
 
+          // Suppress toast for trial expiration - handled by trial modal
+          if (status === 403 && (body as any)?.code === 'TRIAL_EXPIRED') {
+            return throwError(() => err);
+          }
+
           let message = (body?.message as string) || err.message || 'Wystąpił błąd';
           if (status === 400 && body?.details && typeof body.details === 'object') {
             const entries = Object.entries(body.details as Record<string, string>);
@@ -82,6 +88,26 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor]))
+    provideHttpClient(withInterceptors([
+      authInterceptor,
+      // Trial interceptor must run before generic error handler
+      (req: any, next: any) => {
+        const trial = inject(TrialService);
+        return next(req).pipe(
+          catchError((err: any) => {
+            try {
+              if (err instanceof HttpErrorResponse) {
+                const body: any = err.error;
+                if (err.status === 403 && body?.code === 'TRIAL_EXPIRED') {
+                  trial.openExpiredModal(body?.expiresAt);
+                }
+              }
+            } catch {}
+            return throwError(() => err);
+          })
+        );
+      },
+      errorInterceptor
+    ]))
   ]
 };

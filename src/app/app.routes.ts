@@ -8,6 +8,7 @@ import { AdminPanelComponent } from './components/admin/admin-panel.component';
 import { AddEmployeeComponent } from './components/admin/add-employee.component';
 import { EmployeeListComponent } from './components/admin/employee-list.component';
 import { AuthGuard } from './guards/auth.guard';
+import { TrialGuard } from './guards/trial.guard';
 import { RoleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
@@ -18,66 +19,66 @@ export const routes: Routes = [
   {
     path: 'account',
     loadComponent: () => import('./components/account/account-overview.component').then(m => m.AccountOverviewComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'leave-requests/search',
     loadComponent: () => import('./components/leave-requests/leave-requests-search.component').then(m => m.LeaveRequestsSearchComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { 
     path: 'dashboard', 
     component: DashboardComponent,
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'leave',
     loadComponent: () => import('./components/leave-requests/leave-hub.component').then(m => m.LeaveHubComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   // Ewidencja czasu pracy
   {
     path: 'work-time',
     loadComponent: () => import('./components/work-time/work-time-calendar.component').then(m => m.WorkTimeCalendarComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time/annexes',
     loadComponent: () => import('./components/work-time-record/work-time-record-annex-list.component').then(m => m.WorkTimeRecordAnnexListComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time/config',
     loadComponent: () => import('./components/work-time/work-time-config.component').then(m => m.WorkTimeConfigComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time/day/:date',
     loadComponent: () => import('./components/work-time/work-time-day.component').then(m => m.WorkTimeDayComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time-records',
     loadComponent: () => import('./components/work-time-record/work-time-record-list.component').then(m => m.WorkTimeRecordListComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time-records/:id',
     loadComponent: () => import('./components/work-time-record/work-time-record-details.component').then(m => m.WorkTimeRecordDetailsComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'work-time-records/:id/annexes/:annexId',
     loadComponent: () => import('./components/work-time-record/work-time-record-annex-details.component').then(m => m.WorkTimeRecordAnnexDetailsComponent),
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   // Routing dla grafików pracy
   { 
     path: 'schedules', 
     component: WorkScheduleListComponent,
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'schedules/search',
@@ -98,13 +99,13 @@ export const routes: Routes = [
   {
     path: 'schedules/create',
     loadComponent: () => import('./components/work-schedule/work-schedule-create.component').then(m => m.WorkScheduleCreateComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   {
     path: 'schedules/:id/edit',
     loadComponent: () => import('./components/work-schedule/work-schedule-create.component').then(m => m.WorkScheduleCreateComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   {
@@ -116,14 +117,14 @@ export const routes: Routes = [
   {
     path: 'hr/leave-management',
     loadComponent: () => import('./components/leave-requests/hr-management/hr-management.component').then(m => m.HrManagementComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   // Routing dla wniosków urlopowych
   {
     path: 'leave-requests',
     component: LeaveRequestsListComponent,
-    canActivate: [AuthGuard]
+  canActivate: [AuthGuard, TrialGuard]
   },
   {
     path: 'leave-requests/create',
@@ -144,43 +145,43 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: AdminPanelComponent,
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
     path: 'admin/employees/add',
     component: AddEmployeeComponent,
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
     path: 'admin/employees/list',
     loadComponent: () => import('./components/admin/admin-employee-search.component').then(m => m.AdminEmployeeSearchComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   {
     path: 'admin/employees/import',
     loadComponent: () => import('./components/admin/import-employees.component').then(m => m.ImportEmployeesComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
     path: 'admin/employees/:id',
     loadComponent: () => import('./components/admin/employee-details.component').then(m => m.EmployeeDetailsComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR', 'MANAGER'] }
   },
   {
     path: 'admin/employees/edit/:id',
     loadComponent: () => import('./components/admin/edit-employee.component').then(m => m.EditEmployeeComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
     path: 'admin/employees/:id/leave-balances',
     loadComponent: () => import('./components/admin/manage-leave-balances.component').then(m => m.ManageLeaveBalancesComponent),
-    canActivate: [AuthGuard, RoleGuard],
+  canActivate: [AuthGuard, TrialGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
   },
   {
@@ -200,6 +201,12 @@ export const routes: Routes = [
     loadComponent: () => import('./components/admin/users-admin.component').then(m => m.UsersAdminComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { requiredRoles: ['ADMIN', 'HR'] }
+  },
+  {
+    path: 'admin/emails',
+    loadComponent: () => import('./components/admin/email-audit-search.component').then(m => m.EmailAuditSearchComponent),
+    canActivate: [AuthGuard, TrialGuard, RoleGuard],
+    data: { requiredRoles: ['ADMIN'] }
   },
   {
     path: 'admin/work-time',

@@ -103,6 +103,9 @@ import { User } from '../../models/auth.models';
                 <a routerLink="/hr/leave-management" class="dropdown-item">
                   📋 Panel HR - Zarządzanie wnioskami
                 </a>
+                <a routerLink="/admin/emails" class="dropdown-item">
+                  ✉️ Rejestr e-maili
+                </a>
               </div>
             </div>
 
